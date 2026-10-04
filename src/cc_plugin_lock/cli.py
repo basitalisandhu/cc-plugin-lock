@@ -114,6 +114,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="update only this plugin (key, id or name) in the existing lock; repeatable",
     )
     p.add_argument("--quiet", "-q", action="store_true", help="print nothing on success")
+    p.add_argument(
+        "--check",
+        action="store_true",
+        help="compare the rebuilt lock byte for byte without writing the lock or store; "
+        "exit 1 if different or missing",
+    )
 
     p = sub.add_parser(
         "verify",
@@ -285,6 +291,10 @@ def cmd_lock(args: argparse.Namespace) -> int:
         try:
             existing = read(args.lock)
         except LockError as exc:
+            if args.check and isinstance(exc.__cause__, FileNotFoundError):
+                if not args.quiet:
+                    print(f"cc-plugin-lock: {display_path(args.lock)} differs (lock file missing)")
+                return EXIT_CHANGED
             _err(str(exc))
             return EXIT_ERROR
     root = _root_from(args, existing) if existing else (args.root or default_root())
@@ -312,6 +322,20 @@ def cmd_lock(args: argparse.Namespace) -> int:
         doc = dict(existing)
         doc["plugins"] = dict(sorted(merged.items()))
         doc["generatorVersion"] = __version__
+    if args.check:
+        try:
+            identical = args.lock.read_bytes() == dumps(doc).encode("utf-8")
+        except FileNotFoundError:
+            result = "differs (lock file missing)"
+            identical = False
+        except OSError as exc:
+            _err(f"cannot read lock file {args.lock}: {exc}")
+            return EXIT_ERROR
+        else:
+            result = "up to date" if identical else "differs from the current plugins"
+        if not args.quiet:
+            print(f"cc-plugin-lock: {display_path(args.lock)} {result}")
+        return EXIT_OK if identical else EXIT_CHANGED
     if args.store:
         store = store_dir(args.lock)
         try:
