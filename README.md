@@ -51,6 +51,19 @@ When `verify` reports a change you have reviewed and accept, re-lock that one pl
 cc-plugin-lock lock --lock ~/.claude/cc-plugins.lock.json --only formatter@demo --store
 ```
 
+For a read-only CI check, repeat the root, plugin-directory and exclusion options
+used to create the lock:
+
+```bash
+cc-plugin-lock lock --root path/to/plugins --lock cc-plugins.lock.json --check
+```
+
+This compares the rebuilt lock byte for byte, prints one result line, and exits
+0 for an identical file or 1 for a different or missing file. Other read/build
+errors exit 2. It does not write the lock or the content store, even with
+`--store`. `--quiet` suppresses the result line; `--only` checks the selective
+update instead of refreshing every plugin.
+
 ## What it looks like
 
 The repository ships a demo plugins root in [examples/plugins-root](examples/plugins-root) (two plugins from a `demo` marketplace). Copied to a scratch directory as `plugins/`, locked, then with one line added to the formatter plugin's hook script:
@@ -150,7 +163,7 @@ A lock written in the container records `/plugins` as its root, so pass `--root 
 
 | Command | What it does | Exit codes |
 | --- | --- | --- |
-| `lock [--root DIR] [--plugin-dir DIR] [-o FILE] [--store] [--exclude GLOB] [--only PLUGIN]` | Hash every installed plugin and write the lock. `--only` updates just that plugin in an existing lock. | 0, 2 |
+| `lock [--root DIR] [--plugin-dir DIR] [-o FILE] [--store] [--exclude GLOB] [--only PLUGIN] [--check]` | Hash every installed plugin and write the lock. `--only` updates just that plugin; `--check` compares without writing. | 0, 1 different or missing with `--check`, 2 errors |
 | `verify [--lock FILE] [--root DIR] [--strict] [--format table\|markdown\|json\|sarif\|hook] [--fail-on low\|medium\|high]` | Compare the installed plugins with the lock. | 0 clean, 1 changes, 2 errors |
 | `diff PLUGIN [--lock FILE] [--store DIR] [-U N]` | Unified diff against the stored locked content, or changed paths with hashes. | 0 none, 1 changes, 2 errors |
 | `hook [--lock FILE] [--fail-on high] [--exe CMD] [--matcher M] [--no-strict]` | Print the `SessionStart` settings block. | 0 |
