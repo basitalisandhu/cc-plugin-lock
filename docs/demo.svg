@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="892" viewBox="0 0 920 892" role="img" aria-label="cc-plugin-lock: lock, plant a hook change, verify, diff, scan">
+<title>cc-plugin-lock: lock, plant a hook change, verify, diff, scan</title>
+<rect width="920" height="892" rx="8" fill="#0A1628"/>
+<path d="M0 8a8 8 0 0 1 8-8h904a8 8 0 0 1 8 8v28h-920z" fill="#13233D"/>
+<circle cx="20" cy="18" r="6" fill="#FF7B72"/><circle cx="40" cy="18" r="6" fill="#E3B341"/><circle cx="60" cy="18" r="6" fill="#7EE787"/>
+<text x="460" y="23" fill="#7D8BA1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" text-anchor="middle" xml:space="preserve">cc-plugin-lock: lock, plant a hook change, verify, diff, scan</text>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="14" fill="#D7DEE8" xml:space="preserve" style="white-space:pre">
+<text x="24" y="68" xml:space="preserve"><tspan fill="#7FD1AE">$ cc-plugin-lock lock --root plugins --store</tspan></text>
+<text x="24" y="88" xml:space="preserve">cc-plugin-lock 0.1.0: locked 2 plugin(s) and 1 marketplace(s) under ./plugins into</text>
+<text x="24" y="108" xml:space="preserve">cc-plugins.lock.json</text>
+<text x="24" y="128" xml:space="preserve">  formatter@demo                           8086c12b6d6c     5 file(s)  docs, hooks, manifest, skills</text>
+<text x="24" y="148" xml:space="preserve">  notes@demo                               8184e96643f3     3 file(s)  commands, manifest, skills</text>
+<text x="24" y="168" xml:space="preserve">stored file contents under ./.cc-plugin-lock</text>
+<text x="24" y="208" xml:space="preserve"><tspan fill="#7FD1AE">$ printf 'echo planted\n' &gt;&gt; plugins/cache/demo/formatter/1.0.0/scripts/format.sh</tspan></text>
+<text x="24" y="248" xml:space="preserve"><tspan fill="#7FD1AE">$ cc-plugin-lock verify</tspan></text>
+<text x="24" y="268" xml:space="preserve">cc-plugin-lock 0.1.0 verify: 2 plugin(s) compared with cc-plugins.lock.json</text>
+<text x="24" y="308" xml:space="preserve">STATUS     SEVERITY  PLUGIN          DETAIL</text>
+<text x="24" y="328" xml:space="preserve">-------------------------------------------</text>
+<text x="24" y="348" xml:space="preserve"><tspan fill="#FF7B72">changed</tspan>    <tspan fill="#FF7B72">HIGH</tspan>      formatter@demo  1 file(s): hooks 1</text>
+<text x="24" y="368" xml:space="preserve"><tspan fill="#7EE787">unchanged</tspan>  -         notes@demo</text>
+<text x="24" y="408" xml:space="preserve">formatter@demo (<tspan fill="#FF7B72">HIGH</tspan>):</text>
+<text x="24" y="428" xml:space="preserve">  <tspan fill="#FF7B72">modified</tspan>  <tspan fill="#FF7B72">HIGH</tspan>    hooks          scripts/format.sh  f09e6a07d63e -&gt; c0cdccec8bfa</text>
+<text x="24" y="468" xml:space="preserve">1 <tspan fill="#7EE787">unchanged</tspan>, 1 <tspan fill="#FF7B72">changed</tspan>, 0 added, 0 removed; highest severity <tspan fill="#FF7B72">HIGH</tspan>.</text>
+<text x="24" y="488" xml:space="preserve">Review a plugin with `cc-plugin-lock diff &lt;plugin&gt;`; accept a reviewed change with `cc-plugin-lock</text>
+<text x="24" y="508" xml:space="preserve">lock --only &lt;plugin&gt;`.</text>
+<text x="24" y="528" xml:space="preserve"><tspan fill="#7D8BA1">[exit 1]</tspan></text>
+<text x="24" y="568" xml:space="preserve"><tspan fill="#7FD1AE">$ cc-plugin-lock diff formatter</tspan></text>
+<text x="24" y="588" xml:space="preserve">formatter@demo: 1 <tspan fill="#FF7B72">changed</tspan> file(s)</text>
+<text x="24" y="608" xml:space="preserve"><tspan fill="#FF7B72">modified</tspan> scripts/format.sh [hooks] f09e6a07d63e -&gt; c0cdccec8bfa</text>
+<text x="24" y="628" xml:space="preserve">--- a/scripts/format.sh (locked)</text>
+<text x="24" y="648" xml:space="preserve">+++ b/scripts/format.sh (installed)</text>
+<text x="24" y="668" xml:space="preserve">@@ -1,3 +1,4 @@</text>
+<text x="24" y="688" xml:space="preserve"> #!/bin/sh</text>
+<text x="24" y="708" xml:space="preserve"> # Formats the file Claude just edited. Reads the hook payload on stdin.</text>
+<text x="24" y="728" xml:space="preserve"> exit 0</text>
+<text x="24" y="748" xml:space="preserve">+echo planted</text>
+<text x="24" y="768" xml:space="preserve"><tspan fill="#7D8BA1">[exit 1]</tspan></text>
+<text x="24" y="808" xml:space="preserve"><tspan fill="#7FD1AE">$ cc-plugin-lock scan plugins/cache/demo/formatter/1.0.0</tspan></text>
+<text x="24" y="828" xml:space="preserve">cc-plugin-lock 0.1.0 scan: 5 file(s) in 1 plugin(s) under plugins/cache/demo/formatter/1.0.0</text>
+<text x="24" y="868" xml:space="preserve"><tspan fill="#7EE787">No findings</tspan> for the rules in docs/rules.md. This is a heuristic check, not a guarantee.</text>
+</g>
+</svg>

@@ -10,6 +10,12 @@
 pipx install git+https://github.com/basitalisandhu/cc-plugin-lock
 ```
 
+## Demo
+
+![Terminal output of cc-plugin-lock locking the example plugins, then verify, diff and scan after one line is added to a hook script](docs/demo.svg)
+
+Generated from the committed fixtures by [`scripts/render_demo.py`](scripts/render_demo.py); run `python3 scripts/render_demo.py` to regenerate it.
+
 ## What it is, who it is for, and why
 
 A Claude Code plugin can ship hooks that run shell commands on every tool call, MCP servers that start at session start, executables that land on the Bash tool's `PATH`, and skills that change what the model is told. Plugins come from marketplaces, which are git repositories. When a marketplace updates, Claude Code fetches the new version into `~/.claude/plugins/cache/` and loads it on the next launch. Auto-update is on by default for Anthropic's official marketplaces and can be turned on for any other ([plugin loading reference](https://code.claude.com/docs/en/plugins/loading#when-auto-update-runs)). Nothing in that path shows you what changed between the version you reviewed and the one that is about to run.
