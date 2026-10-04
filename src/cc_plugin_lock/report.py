@@ -1,8 +1,9 @@
-"""Renderers for verify and scan results: table, JSON, SARIF 2.1.0 and hook JSON."""
+"""Renderers for verify and scan results: table, Markdown, JSON, SARIF and hook JSON."""
 
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import re
 from pathlib import Path
@@ -18,7 +19,7 @@ SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
 INFO_URI = "https://github.com/basitalisandhu/cc-plugin-lock"
 SARIF_LEVELS = {HIGH: "error", MEDIUM: "warning", LOW: "note"}
 SECURITY_SEVERITY = {HIGH: "8.0", MEDIUM: "5.0", LOW: "2.0"}
-VERIFY_FORMATS = ("table", "json", "sarif", "hook")
+VERIFY_FORMATS = ("table", "markdown", "json", "sarif", "hook")
 SCAN_FORMATS = ("table", "json", "sarif")
 
 
@@ -111,6 +112,70 @@ def verify_table(rep: Report, *, verbose_unchanged: bool = True) -> str:
         )
     else:
         lines.append(f"{s[UNCHANGED]} plugin(s) match the lock.")
+    return "\n".join(lines) + "\n"
+
+
+def _markdown_cell(text: str) -> str:
+    escaped = html.escape(text)
+    for char in "\\[]*_`~":
+        escaped = escaped.replace(char, f"&#{ord(char)};")
+    return escaped.replace("|", "&#124;").replace("\r", "").replace("\n", "<br>")
+
+
+def verify_markdown(rep: Report) -> str:
+    s = rep.summary()
+    lines = [
+        "## cc-plugin-lock verify",
+        "",
+        f"{len(rep.plugins)} plugin(s) compared with <code>{_markdown_cell(rep.lock_path)}</code>.",
+        "",
+        "| Status | Severity | Plugin | Detail |",
+        "| --- | --- | --- | --- |",
+    ]
+    for p in rep.changed():
+        lines.append(
+            f"| {p.status} | {(p.severity or '-').upper()} | "
+            f"<code>{_markdown_cell(p.key)}</code> | {_markdown_cell(_plugin_detail(p))} |"
+        )
+    lines += [
+        "",
+        f"{s[UNCHANGED]} unchanged, {s[CHANGED]} changed, {s[ADDED]} added, {s[REMOVED]} removed; "
+        f"highest severity {(s['maxSeverity'] or 'none').upper()}.",
+    ]
+    for p in rep.plugins:
+        if p.status != CHANGED:
+            continue
+        lines += [
+            "",
+            "<details>",
+            f"<summary>{_markdown_cell(p.key)} ({(p.severity or '-').upper()})</summary>",
+            "",
+            "| Change | Severity | Class | File | Old hash | New hash |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ]
+        for c in sorted(p.changes, key=lambda c: (-SEVERITY_RANK[c.severity], c.path)):
+            lines.append(
+                f"| {c.change} | {c.severity.upper()} | {c.cls} | "
+                f"<code>{_markdown_cell(c.path)}</code> | {short(c.old)} | {short(c.new)} |"
+            )
+        lines += ["", "</details>"]
+    if rep.marketplaces:
+        lines += [
+            "",
+            "### Marketplaces",
+            "",
+            "| Status | Severity | Marketplace | Detail |",
+            "| --- | --- | --- | --- |",
+        ]
+        for m in rep.marketplaces:
+            lines.append(
+                f"| {m.status} | {(m.severity or '-').upper()} | "
+                f"<code>{_markdown_cell(m.name)}</code> | {_markdown_cell(m.detail)} |"
+            )
+    if rep.warnings or rep.errors:
+        lines.append("")
+        lines += [f"- Warning: {_markdown_cell(w)}" for w in rep.warnings]
+        lines += [f"- Error: {_markdown_cell(e)}" for e in rep.errors]
     return "\n".join(lines) + "\n"
 
 
@@ -306,6 +371,8 @@ def verify_hook(rep: Report, fail_on: str) -> dict[str, Any] | None:
 
 
 def render_verify(rep: Report, fmt: str, fail_on: str = LOW) -> str:
+    if fmt == "markdown":
+        return verify_markdown(rep)
     if fmt == "json":
         return verify_json(rep)
     if fmt == "sarif":

