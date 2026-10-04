@@ -116,7 +116,10 @@ def verify_table(rep: Report, *, verbose_unchanged: bool = True) -> str:
 
 
 def _markdown_cell(text: str) -> str:
-    return html.escape(text).replace("|", "&#124;").replace("\r", "").replace("\n", "<br>")
+    escaped = html.escape(text)
+    for char in "\\[]*_`~":
+        escaped = escaped.replace(char, f"&#{ord(char)};")
+    return escaped.replace("|", "&#124;").replace("\r", "").replace("\n", "<br>")
 
 
 def verify_markdown(rep: Report) -> str:

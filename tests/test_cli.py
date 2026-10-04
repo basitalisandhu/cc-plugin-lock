@@ -150,3 +150,29 @@ def test_verify_markdown_escapes_cells_and_preserves_diagnostics():
     assert "source changed" in out
     assert "Warning: missing metadata" in out
     assert "Error: cannot read file" in out
+
+
+def test_verify_markdown_preserves_markdown_characters_in_file_names():
+    from cc_plugin_lock.report import render_verify
+    from cc_plugin_lock.verify import FileChange, PluginResult, Report
+
+    rep = Report(
+        lock_path="lock.json",
+        root="plugins",
+        plugins=[
+            PluginResult(
+                "example",
+                "changed",
+                "low",
+                "example",
+                "plugins/example",
+                changes=[
+                    FileChange(
+                        "docs/![readme](other)*_`~\\.md", "modified", "docs", "low", "old", "new"
+                    )
+                ],
+            )
+        ],
+    )
+    out = render_verify(rep, "markdown")
+    assert "docs/!&#91;readme&#93;(other)&#42;&#95;&#96;&#126;&#92;.md" in out
