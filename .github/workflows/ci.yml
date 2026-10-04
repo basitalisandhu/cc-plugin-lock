@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install
+        run: python -m pip install -e ".[dev]" build
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Test
+        run: python -m pytest -q
+      - name: Lock, plant a hook change and verify the example plugins root
+        run: |
+          rm -rf /tmp/demo && mkdir /tmp/demo && cp -R examples/plugins-root /tmp/demo/plugins
+          cd /tmp/demo
+          cc-plugin-lock lock --root plugins --store
+          cc-plugin-lock verify
+          printf 'echo planted\n' >> plugins/cache/demo/formatter/1.0.0/scripts/format.sh
+          set +e
+          cc-plugin-lock verify --format sarif --output verify.sarif; test $? -eq 1 || exit 1
+          cc-plugin-lock verify --format hook --fail-on high > hook.json
+          set -e
+          python -c "import json; d=json.load(open('verify.sarif')); assert d['version']=='2.1.0' and d['runs'][0]['results']"
+          python -c "import json; d=json.load(open('hook.json')); assert d['continue'] is False"
+          cc-plugin-lock diff formatter || test $? -eq 1
+      - name: Scan the example plugins
+        run: cc-plugin-lock scan examples/plugins-root/cache/demo/formatter/1.0.0 --fail-on low
+      - name: Build and smoke-test the wheel
+        run: |
+          python -m build
+          python -m pip install --force-reinstall dist/*.whl
+          cc-plugin-lock --version
+          cc-plugin-lock hook --lock /tmp/demo/cc-plugins.lock.json | python -c "import json,sys; json.load(sys.stdin)"
+
+  container-build:
+    name: Build the container image and run it
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the image, print --help and verify the example plugins root from a mount
+        run: |
+          docker build --build-arg VERSION=ci -t cc-plugin-lock:ci .
+          docker run --rm cc-plugin-lock:ci --help > help.txt && grep "^usage: cc-plugin-lock" help.txt
+          docker run --rm cc-plugin-lock:ci --version
+          test "$(docker run --rm --entrypoint id cc-plugin-lock:ci -u)" = "1000"
+          mkdir -p out && chmod 777 out
+          docker run --rm -v "$PWD/examples/plugins-root:/plugins:ro" -v "$PWD/out:/work" cc-plugin-lock:ci lock --root /plugins
+          docker run --rm -v "$PWD/examples/plugins-root:/plugins:ro" -v "$PWD/out:/work" cc-plugin-lock:ci verify
+          docker run --rm -v "$PWD/examples/plugins-root:/plugins:ro" cc-plugin-lock:ci scan /plugins/cache/demo/notes/2.0.0 --fail-on low

@@ -1,0 +1,5 @@
+{
+  "name": "formatter",
+  "version": "1.0.0",
+  "description": "Runs the project formatter after Claude edits a file"
+}

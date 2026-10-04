@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "plugins": {
+    "formatter@demo": [
+      {
+        "scope": "user",
+        "installPath": "cache/demo/formatter/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-10-01T09:00:00.000Z",
+        "lastUpdated": "2026-10-01T09:00:00.000Z",
+        "gitCommitSha": "0123456789abcdef0123456789abcdef01234567"
+      }
+    ],
+    "notes@demo": [
+      {
+        "scope": "user",
+        "installPath": "cache/demo/notes/2.0.0",
+        "version": "2.0.0",
+        "installedAt": "2026-10-01T09:00:00.000Z",
+        "lastUpdated": "2026-10-01T09:00:00.000Z"
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "demo": {
+    "source": {
+      "source": "github",
+      "repo": "example-org/demo-marketplace"
+    },
+    "installLocation": "marketplaces/demo",
+    "lastUpdated": "2026-10-01T09:00:00.000Z"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "demo",
+  "owner": { "name": "Example Org" },
+  "plugins": [
+    { "name": "formatter", "source": { "source": "github", "repo": "example-org/formatter" } },
+    { "name": "notes", "source": "./plugins/notes" }
+  ]
+}
