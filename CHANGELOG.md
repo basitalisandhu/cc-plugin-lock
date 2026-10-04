@@ -11,7 +11,7 @@ All notable changes to this project are documented here. The format follows
 - `verify --format markdown` for pull request comments and CI job summaries (#7, thanks @kkinsen0314-alt).
 - `lock --check` compares the rebuilt lock with the file byte for byte and exits 1 on a difference, without writing the lock or the store (#8, thanks @kkinsen0314-alt).
 
-## [0.1.0] - 2026-10-05
+## [0.1.0] - 2026-10-04
 
 ### Added
 
