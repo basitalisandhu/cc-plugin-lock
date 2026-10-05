@@ -44,6 +44,18 @@ def test_tree_hash_is_order_independent():
     assert tree_hash(pairs) == tree_hash(list(reversed(pairs)))
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX execute bits")
+def test_execute_metadata_does_not_change_content_hash(tmp_path):
+    script = write(tmp_path, "x.sh", "exit 0\n")
+    script.chmod(0o644)
+    [before] = hash_tree(tmp_path)
+    script.chmod(0o641)
+    [after] = hash_tree(tmp_path)
+    assert before.executable is False and after.executable is True
+    assert before.digest == after.digest and before.size == after.size
+    assert tree_hash([(before.path, before.digest)]) == tree_hash([(after.path, after.digest)])
+
+
 def test_tree_hash_changes_with_path_or_content():
     base = tree_hash([("a", "sha256:1")])
     assert tree_hash([("b", "sha256:1")]) != base

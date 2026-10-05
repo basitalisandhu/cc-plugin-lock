@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+
+import pytest
 
 from cc_plugin_lock.lockfile import LOCKFILE_VERSION
 
@@ -56,6 +59,53 @@ def test_modified_hook_script_is_high(locked):
         }
     ]
     assert f["changes"][0]["old"] != f["changes"][0]["new"]
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX execute bits")
+@pytest.mark.parametrize("before, after", [(0o644, 0o755), (0o755, 0o644)])
+def test_mode_only_hook_change_is_high(plugins, lock_path, before, after):
+    script = plugins.formatter / "scripts/format.sh"
+    script.chmod(before)
+    assert run("lock", "--root", str(plugins.root), "-o", str(lock_path), "-q")[0] == 0
+    old = json.loads(lock_path.read_text())["plugins"]["formatter@acme"]
+    script.chmod(after)
+    rc, rep = verify_json(lock_path)
+    change = plugin_result(rep, "formatter@acme")
+    assert rc == 1 and change["status"] == "changed" and change["severity"] == "high"
+    assert len(change["changes"]) == 1
+    detail = change["changes"][0]
+    assert detail["change"] == "mode"
+    assert detail["old"] == detail["new"] == old["files"]["scripts/format.sh"]["sha256"]
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX execute bits")
+def test_non_execute_permission_change_is_ignored(locked):
+    plugins, lock = locked
+    script = plugins.formatter / "scripts/format.sh"
+    script.chmod(0o600)
+    assert verify_json(lock)[0] == 0
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX execute bits")
+def test_old_lock_stays_readable_and_records_new_execute_baseline(plugins, lock_path):
+    script = plugins.formatter / "scripts/format.sh"
+    script.chmod(0o755)
+    assert run("lock", "--root", str(plugins.root), "-o", str(lock_path), "-q")[0] == 0
+    doc = json.loads(lock_path.read_text())
+    record = doc["plugins"]["formatter@acme"]
+    content_hash = record["contentHash"]
+    assert record["files"]["scripts/format.sh"]["executable"] is True
+    del record["files"]["scripts/format.sh"]["executable"]
+    lock_path.write_text(json.dumps(doc))
+    rc, rep = verify_json(lock_path)
+    assert rc == 1 and rep["errors"] == []
+    assert plugin_result(rep, "formatter@acme")["changes"][0]["change"] == "mode"
+    assert run("lock", "--root", str(plugins.root), "-o", str(lock_path), "-q")[0] == 0
+    assert (
+        json.loads(lock_path.read_text())["plugins"]["formatter@acme"]["contentHash"]
+        == content_hash
+    )
+    assert verify_json(lock_path)[0] == 0
 
 
 def test_modified_hooks_json_is_high(locked):

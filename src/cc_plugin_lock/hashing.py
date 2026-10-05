@@ -42,6 +42,7 @@ class FileEntry:
     digest: str
     size: int
     symlink: str | None = None
+    executable: bool = False
 
 
 def is_text(data: bytes) -> bool:
@@ -106,7 +107,9 @@ def hash_file(root: Path, rel: str) -> FileEntry:
         target = os.readlink(full)
         return FileEntry(rel, symlink_digest(target), len(target), symlink=target)
     data = read_normalised(full)
-    return FileEntry(rel, digest_bytes(data), len(data))
+    return FileEntry(
+        rel, digest_bytes(data), len(data), executable=bool(full.stat().st_mode & 0o111)
+    )
 
 
 def walk(root: Path, patterns: Iterable[str] = ()) -> list[str]:

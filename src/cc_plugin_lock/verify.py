@@ -136,13 +136,17 @@ def _file_changes(old: dict[str, Any], new: dict[str, Any]) -> list[FileChange]:
     changes: list[FileChange] = []
     for rel in sorted(set(old) | set(new)):
         o, n = old.get(rel), new.get(rel)
-        if o and n and o.get("sha256") == n.get("sha256"):
+        same_content = bool(o and n and o.get("sha256") == n.get("sha256"))
+        mode_changed = bool(o and n and bool(o.get("executable")) != bool(n.get("executable")))
+        if same_content and not mode_changed:
             continue
         cls = (n or o or {}).get("class", "other")
         if o and n and o.get("class") != n.get("class"):
             # A file that moved into a riskier class reports the riskier one.
             cls = max((o.get("class", "other"), cls), key=lambda c: _rank(severity_of(c)))
-        kind = "modified" if o and n else ("added" if n else "removed")
+        kind = (
+            "mode" if same_content else ("modified" if o and n else ("added" if n else "removed"))
+        )
         changes.append(
             FileChange(
                 rel,
@@ -221,7 +225,14 @@ def compare(
             res.status = REMOVED
             res.classes = _classes_of(o)
             res.severity = LOW
-        elif o is not None and n is not None and o.get("contentHash") != n.get("contentHash"):
+        elif (
+            o is not None
+            and n is not None
+            and (
+                o.get("contentHash") != n.get("contentHash")
+                or _file_changes(o["files"], n["files"])
+            )
+        ):
             res.status = CHANGED
             res.changes = _file_changes(o["files"], n["files"])
             res.classes = [c for c in CLASSES if any(ch.cls == c for ch in res.changes)]
