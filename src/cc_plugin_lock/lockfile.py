@@ -112,6 +112,7 @@ def build(
     }
     snap.doc = {
         "lockfileVersion": LOCKFILE_VERSION,
+        "tracksExecutable": True,
         "generator": "cc-plugin-lock",
         "generatorVersion": __version__,
         "hashAlgorithm": "sha256",

@@ -32,6 +32,7 @@ def test_lock_schema_fields(locked):
     _, lock = locked
     doc = json.loads(lock.read_text())
     assert doc["lockfileVersion"] == LOCKFILE_VERSION and doc["hashAlgorithm"] == "sha256"
+    assert doc["tracksExecutable"] is True
     rec = doc["plugins"]["formatter@acme"]
     assert rec["version"] == "1.0.0" and rec["gitCommitSha"] == "a" * 40
     assert rec["entrySource"] == {"source": "github", "repo": "acme/formatter"}
@@ -92,20 +93,66 @@ def test_old_lock_stays_readable_and_records_new_execute_baseline(plugins, lock_
     script.chmod(0o755)
     assert run("lock", "--root", str(plugins.root), "-o", str(lock_path), "-q")[0] == 0
     doc = json.loads(lock_path.read_text())
+    doc.pop("tracksExecutable", None)
     record = doc["plugins"]["formatter@acme"]
     content_hash = record["contentHash"]
     assert record["files"]["scripts/format.sh"]["executable"] is True
     del record["files"]["scripts/format.sh"]["executable"]
     lock_path.write_text(json.dumps(doc))
     rc, rep = verify_json(lock_path)
-    assert rc == 1 and rep["errors"] == []
-    assert plugin_result(rep, "formatter@acme")["changes"][0]["change"] == "mode"
+    assert rc == 0 and rep["errors"] == []
+    assert plugin_result(rep, "formatter@acme")["changes"] == []
+    assert run("diff", "formatter", "--lock", str(lock_path))[0] == 0
     assert run("lock", "--root", str(plugins.root), "-o", str(lock_path), "-q")[0] == 0
     assert (
         json.loads(lock_path.read_text())["plugins"]["formatter@acme"]["contentHash"]
         == content_hash
     )
     assert verify_json(lock_path)[0] == 0
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX execute bits")
+@pytest.mark.parametrize("before, after", [(0o644, 0o755), (0o755, 0o644)])
+def test_diff_reports_mode_only_changes(plugins, lock_path, before, after):
+    script = plugins.formatter / "scripts/format.sh"
+    script.chmod(before)
+    assert run("lock", "--root", str(plugins.root), "-o", str(lock_path), "-q")[0] == 0
+    script.chmod(after)
+    rc, out, err = run("diff", "formatter", "--lock", str(lock_path))
+    old, new = str(bool(before & 0o111)).lower(), str(bool(after & 0o111)).lower()
+    assert rc == 1 and not err
+    assert f"mode scripts/format.sh [hooks] executable: {old} -> {new}" in out
+    assert "no stored copy" not in out
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX execute bits")
+def test_partial_legacy_lock_update_does_not_enable_mode_tracking(plugins, lock_path):
+    script = plugins.formatter / "scripts/format.sh"
+    script.chmod(0o755)
+    assert run("lock", "--root", str(plugins.root), "-o", str(lock_path), "-q")[0] == 0
+    doc = json.loads(lock_path.read_text())
+    del doc["tracksExecutable"]
+    del doc["plugins"]["formatter@acme"]["files"]["scripts/format.sh"]["executable"]
+    lock_path.write_text(json.dumps(doc), encoding="utf-8")
+    assert run("lock", "--lock", str(lock_path), "--only", "notes", "-q")[0] == 0
+    assert "tracksExecutable" not in json.loads(lock_path.read_text())
+    assert verify_json(lock_path)[0] == 0
+    write(plugins.formatter, "scripts/format.sh", "#!/bin/sh\necho changed\n")
+    assert verify_json(lock_path)[0] == 1
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX execute bits")
+def test_diff_reports_both_content_and_mode_changes(plugins, lock_path):
+    script = plugins.formatter / "scripts/format.sh"
+    script.chmod(0o644)
+    assert run("lock", "--root", str(plugins.root), "-o", str(lock_path), "--store", "-q")[0] == 0
+    write(plugins.formatter, "scripts/format.sh", "#!/bin/sh\necho changed\n")
+    script.chmod(0o755)
+    rc, out, err = run("diff", "formatter", "--lock", str(lock_path))
+    assert rc == 1 and not err
+    assert "mode scripts/format.sh [hooks] executable: false -> true" in out
+    assert "modified scripts/format.sh [hooks]" in out
+    assert "+echo changed" in out
 
 
 def test_modified_hooks_json_is_high(locked):

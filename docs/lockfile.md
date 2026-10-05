@@ -26,7 +26,9 @@ Timestamps (`installedAt`, `lastUpdated`) are not recorded, so two locks of an u
 3. Symbolic link: the digest is the SHA-256 of the bytes `symlink`, a NUL byte, and the link target as written; `size` is the target's length and the record carries `"symlink": "<target>"`.
 4. Tree hash (`contentHash`, and each entry of `components`): sort the files by the UTF-8 bytes of their path, then SHA-256 the concatenation of `<path>`, a NUL byte, `<digest>`, and a newline for each file.
 
-Line-ending normalisation means a plugin checked out on Windows and on macOS has the same hash. File modes are not hashed. Regular-file records optionally carry `"executable": true` when any execute bit is set; absence means non-executable. Verification reports an execute-bit-only difference as `mode`, with the file's class severity, without changing the content or component hashes. Older locks remain readable, but an executable file absent this metadata can report a mode difference; regenerate the lock after reviewing it to record the baseline.
+Line-ending normalisation means a plugin checked out on Windows and on macOS has the same hash. File modes are not hashed. Newly generated locks have the top-level marker `"tracksExecutable": true`; their regular-file records optionally carry `"executable": true` when any execute bit is set, with absence meaning non-executable. Verification reports an execute-bit-only difference as `mode`, with the file's class severity, without changing the content or component hashes. `diff` also prints the old and new execute state for such files.
+
+Older locks without the marker skip execute-state comparisons, so upgrading does not raise alarms on unchanged plugins. A partial `lock --only` update preserves that legacy behavior; regenerate the complete lock after reviewing the install to opt into execute-state tracking. Content changes are still detected in legacy locks.
 
 ## Component classes
 
@@ -65,6 +67,7 @@ Precedence: an exact reference (a file a hook or server command names) wins over
 ```json
 {
   "lockfileVersion": 1,
+  "tracksExecutable": true,
   "generator": "cc-plugin-lock",
   "generatorVersion": "0.1.0",
   "hashAlgorithm": "sha256",

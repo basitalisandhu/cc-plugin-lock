@@ -18,7 +18,7 @@ REMOVED = "removed"
 @dataclass
 class FileChange:
     path: str
-    change: str  # modified, added, removed
+    change: str  # modified, added, removed, mode
     cls: str
     severity: str
     old: str | None
@@ -132,12 +132,16 @@ class Report:
         }
 
 
-def _file_changes(old: dict[str, Any], new: dict[str, Any]) -> list[FileChange]:
+def _file_changes(
+    old: dict[str, Any], new: dict[str, Any], *, track_modes: bool = True
+) -> list[FileChange]:
     changes: list[FileChange] = []
     for rel in sorted(set(old) | set(new)):
         o, n = old.get(rel), new.get(rel)
         same_content = bool(o and n and o.get("sha256") == n.get("sha256"))
-        mode_changed = bool(o and n and bool(o.get("executable")) != bool(n.get("executable")))
+        mode_changed = bool(
+            track_modes and o and n and bool(o.get("executable")) != bool(n.get("executable"))
+        )
         if same_content and not mode_changed:
             continue
         cls = (n or o or {}).get("class", "other")
@@ -181,6 +185,7 @@ def compare(
     rep = Report(lock_path=lock_path, root=root, abs_paths=dict(abs_paths or {}))
     old_plugins: dict[str, Any] = locked.get("plugins", {})
     new_plugins: dict[str, Any] = current.get("plugins", {})
+    track_modes = locked.get("tracksExecutable") is True
 
     # Match by key first; a key that changed only because the version is in it (several
     # installs of one id) falls back to the plugin id.
@@ -225,18 +230,13 @@ def compare(
             res.status = REMOVED
             res.classes = _classes_of(o)
             res.severity = LOW
-        elif (
-            o is not None
-            and n is not None
-            and (
-                o.get("contentHash") != n.get("contentHash")
-                or _file_changes(o["files"], n["files"])
-            )
-        ):
-            res.status = CHANGED
-            res.changes = _file_changes(o["files"], n["files"])
-            res.classes = [c for c in CLASSES if any(ch.cls == c for ch in res.changes)]
-            res.severity = max_severity(ch.severity for ch in res.changes)
+        elif o is not None and n is not None:
+            changes = _file_changes(o["files"], n["files"], track_modes=track_modes)
+            if o.get("contentHash") != n.get("contentHash") or changes:
+                res.status = CHANGED
+                res.changes = changes
+                res.classes = [c for c in CLASSES if any(ch.cls == c for ch in res.changes)]
+                res.severity = max_severity(ch.severity for ch in res.changes)
         rep.plugins.append(res)
 
     old_m: dict[str, Any] = locked.get("marketplaces", {})
