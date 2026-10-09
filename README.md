@@ -207,7 +207,7 @@ Merge the `SessionStart` entry into `~/.claude/settings.json`. The handler uses 
 - **It verifies files, not behaviour.** A plugin whose MCP server is `npx -y some-package`, `uvx`, a container tag or a remote URL runs code the lock never sees. `scan` flags those (CPL201 to CPL206) so you can pin them.
 - **The lock is as trustworthy as your first review.** `lock` records what is installed; it does not judge it. Run `scan` and read the plugin before you lock it.
 - **Scan rules are heuristics.** They find the obvious cases. An author who wants to hide something can. A clean scan means nothing obvious matched.
-- **File modes are not hashed**, so a change that only sets the executable bit is not reported.
+- **Only execute bits are tracked**, separately from the unchanged content hashes. An execute-bit-only change is reported as `mode`; other permissions, ownership and symbolic-link target modes are not tracked.
 - **Plugins synced from claude.ai** (`<name>@synced`) and session-only `--plugin-dir` plugins have no install record; lock a directory explicitly with `--plugin-dir`.
 
 ## Frequently asked questions

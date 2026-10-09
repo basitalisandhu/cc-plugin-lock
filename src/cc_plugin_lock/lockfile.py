@@ -62,6 +62,8 @@ def plugin_record(plugin: Plugin, excludes: list[str]) -> dict[str, Any]:
         rec: dict[str, Any] = {"sha256": e.digest, "size": e.size, "class": classes[e.path]}
         if e.symlink is not None:
             rec["symlink"] = e.symlink
+        if e.executable:
+            rec["executable"] = True
         files[e.path] = rec
     record: dict[str, Any] = {
         "id": plugin.plugin_id,
@@ -110,6 +112,7 @@ def build(
     }
     snap.doc = {
         "lockfileVersion": LOCKFILE_VERSION,
+        "tracksExecutable": True,
         "generator": "cc-plugin-lock",
         "generatorVersion": __version__,
         "hashAlgorithm": "sha256",

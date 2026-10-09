@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Optional executable metadata for regular files, with a `tracksExecutable` marker preserving legacy locks, and `mode` findings in verification and diff when execute bits change. Content and component hashes remain unchanged.
 - `verify --format markdown` for pull request comments and CI job summaries (#7, thanks @kkinsen0314-alt).
 - `lock --check` compares the rebuilt lock with the file byte for byte and exits 1 on a difference, without writing the lock or the store (#8, thanks @kkinsen0314-alt).
 

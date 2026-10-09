@@ -481,10 +481,17 @@ def cmd_diff(args: argparse.Namespace) -> int:
     plugin_path = current_keys[current_key].path if current_key else None
     label = current_key or key
     old_files, new_files = old_rec["files"], new_rec["files"]
+    track_modes = locked.get("tracksExecutable") is True
     changed = sorted(
         p
         for p in set(old_files) | set(new_files)
         if old_files.get(p, {}).get("sha256") != new_files.get(p, {}).get("sha256")
+        or (
+            track_modes
+            and p in old_files
+            and p in new_files
+            and bool(old_files[p].get("executable")) != bool(new_files[p].get("executable"))
+        )
     )
     if not changed:
         print(f"{label}: no changes against the lock")
@@ -494,6 +501,12 @@ def cmd_diff(args: argparse.Namespace) -> int:
     for rel in changed:
         o, n = old_files.get(rel), new_files.get(rel)
         cls = (n or o or {}).get("class", "other")
+        if track_modes and o and n and bool(o.get("executable")) != bool(n.get("executable")):
+            before = str(bool(o.get("executable"))).lower()
+            after = str(bool(n.get("executable"))).lower()
+            out.append(f"mode {rel} [{cls}] executable: {before} -> {after}\n")
+            if o["sha256"] == n["sha256"]:
+                continue
         kind = "modified" if o and n else ("added" if n else "removed")
         old_bytes = load_object(store, o["sha256"]) if o else None
         new_bytes = None
