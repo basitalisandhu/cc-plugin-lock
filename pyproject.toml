@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cc-plugin-lock"
-version = "0.1.0"
+version = "0.2.0"
 description = "Lock file for Claude Code plugins: pins marketplace plugins and skills to content hashes, verifies them before a session loads them, shows a risk-scored diff, and scans a plugin folder before install."
 readme = "README.md"
 requires-python = ">=3.11"

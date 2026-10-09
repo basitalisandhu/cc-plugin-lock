@@ -69,7 +69,7 @@ Precedence: an exact reference (a file a hook or server command names) wins over
   "lockfileVersion": 1,
   "tracksExecutable": true,
   "generator": "cc-plugin-lock",
-  "generatorVersion": "0.1.0",
+  "generatorVersion": "0.2.0",
   "hashAlgorithm": "sha256",
   "pluginsRoot": "~/.claude/plugins",
   "pluginDirs": [],

@@ -6,14 +6,14 @@
 <text x="460" y="23" fill="#7D8BA1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" text-anchor="middle" xml:space="preserve">cc-plugin-lock: lock, plant a hook change, verify, diff, scan</text>
 <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="14" fill="#D7DEE8" xml:space="preserve" style="white-space:pre">
 <text x="24" y="68" xml:space="preserve"><tspan fill="#7FD1AE">$ cc-plugin-lock lock --root plugins --store</tspan></text>
-<text x="24" y="88" xml:space="preserve">cc-plugin-lock 0.1.0: locked 2 plugin(s) and 1 marketplace(s) under ./plugins into</text>
+<text x="24" y="88" xml:space="preserve">cc-plugin-lock 0.2.0: locked 2 plugin(s) and 1 marketplace(s) under ./plugins into</text>
 <text x="24" y="108" xml:space="preserve">cc-plugins.lock.json</text>
 <text x="24" y="128" xml:space="preserve">  formatter@demo                           8086c12b6d6c     5 file(s)  docs, hooks, manifest, skills</text>
 <text x="24" y="148" xml:space="preserve">  notes@demo                               8184e96643f3     3 file(s)  commands, manifest, skills</text>
 <text x="24" y="168" xml:space="preserve">stored file contents under ./.cc-plugin-lock</text>
 <text x="24" y="208" xml:space="preserve"><tspan fill="#7FD1AE">$ printf 'echo planted\n' &gt;&gt; plugins/cache/demo/formatter/1.0.0/scripts/format.sh</tspan></text>
 <text x="24" y="248" xml:space="preserve"><tspan fill="#7FD1AE">$ cc-plugin-lock verify</tspan></text>
-<text x="24" y="268" xml:space="preserve">cc-plugin-lock 0.1.0 verify: 2 plugin(s) compared with cc-plugins.lock.json</text>
+<text x="24" y="268" xml:space="preserve">cc-plugin-lock 0.2.0 verify: 2 plugin(s) compared with cc-plugins.lock.json</text>
 <text x="24" y="308" xml:space="preserve">STATUS     SEVERITY  PLUGIN          DETAIL</text>
 <text x="24" y="328" xml:space="preserve">-------------------------------------------</text>
 <text x="24" y="348" xml:space="preserve"><tspan fill="#FF7B72">changed</tspan>    <tspan fill="#FF7B72">HIGH</tspan>      formatter@demo  1 file(s): hooks 1</text>
@@ -36,7 +36,7 @@
 <text x="24" y="748" xml:space="preserve">+echo planted</text>
 <text x="24" y="768" xml:space="preserve"><tspan fill="#7D8BA1">[exit 1]</tspan></text>
 <text x="24" y="808" xml:space="preserve"><tspan fill="#7FD1AE">$ cc-plugin-lock scan plugins/cache/demo/formatter/1.0.0</tspan></text>
-<text x="24" y="828" xml:space="preserve">cc-plugin-lock 0.1.0 scan: 5 file(s) in 1 plugin(s) under plugins/cache/demo/formatter/1.0.0</text>
+<text x="24" y="828" xml:space="preserve">cc-plugin-lock 0.2.0 scan: 5 file(s) in 1 plugin(s) under plugins/cache/demo/formatter/1.0.0</text>
 <text x="24" y="868" xml:space="preserve"><tspan fill="#7EE787">No findings</tspan> for the rules in docs/rules.md. This is a heuristic check, not a guarantee.</text>
 </g>
 </svg>

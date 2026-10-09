@@ -70,13 +70,13 @@ The repository ships a demo plugins root in [examples/plugins-root](examples/plu
 
 ```text
 $ cc-plugin-lock lock --root plugins --store
-cc-plugin-lock 0.1.0: locked 2 plugin(s) and 1 marketplace(s) under /tmp/demo/plugins into cc-plugins.lock.json
+cc-plugin-lock 0.2.0: locked 2 plugin(s) and 1 marketplace(s) under /tmp/demo/plugins into cc-plugins.lock.json
   formatter@demo                           8086c12b6d6c     5 file(s)  docs, hooks, manifest, skills
   notes@demo                               8184e96643f3     3 file(s)  commands, manifest, skills
 stored file contents under /tmp/demo/.cc-plugin-lock
 
 $ cc-plugin-lock verify
-cc-plugin-lock 0.1.0 verify: 2 plugin(s) compared with cc-plugins.lock.json
+cc-plugin-lock 0.2.0 verify: 2 plugin(s) compared with cc-plugins.lock.json
 
 STATUS     SEVERITY  PLUGIN          DETAIL
 -------------------------------------------
@@ -152,9 +152,9 @@ Container image: each release tag publishes `ghcr.io/basitalisandhu/cc-plugin-lo
 
 ```bash
 docker run --rm -v "$HOME/.claude/plugins:/plugins:ro" -v "$PWD:/work" \
-  ghcr.io/basitalisandhu/cc-plugin-lock:0.1.0 lock --root /plugins
+  ghcr.io/basitalisandhu/cc-plugin-lock:0.2.0 lock --root /plugins
 docker run --rm -v "$HOME/.claude/plugins:/plugins:ro" -v "$PWD:/work" \
-  ghcr.io/basitalisandhu/cc-plugin-lock:0.1.0 verify --root /plugins
+  ghcr.io/basitalisandhu/cc-plugin-lock:0.2.0 verify --root /plugins
 ```
 
 A lock written in the container records `/plugins` as its root, so pass `--root ~/.claude/plugins` when you verify it on the host.

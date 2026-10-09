@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-09
+
 ### Added
 
 - Optional executable metadata for regular files, with a `tracksExecutable` marker preserving legacy locks, and `mode` findings in verification and diff when execute bits change. Content and component hashes remain unchanged.
@@ -24,5 +26,6 @@ All notable changes to this project are documented here. The format follows
 - `cc-plugin-lock scan`: static pre-install check of a plugin or marketplace folder with 20 rules (CPL101 to CPL107, CPL201 to CPL206, CPL301 to CPL304, CPL401 to CPL403), table, JSON and SARIF output.
 - Example plugins root, CI on Python 3.11 and 3.12, container image `ghcr.io/basitalisandhu/cc-plugin-lock` published on version tags with an SPDX SBOM, a build provenance attestation and a keyless cosign signature, and PyPI trusted publishing (off until the repository variable `PYPI_PUBLISH` is set).
 
-[Unreleased]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/basitalisandhu/cc-plugin-lock/releases/tag/v0.1.0
