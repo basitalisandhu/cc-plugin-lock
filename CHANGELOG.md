@@ -6,9 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-16
+
 ### Added
 
 - `scan` checks every hook handler type in the current hooks reference, not only `command`: CPL108 (low, medium when the handler also calls the network) for a tool-event hook whose matcher sees every tool call (#4); CPL109 (medium) for an `http` hook that posts event data to a remote server; CPL110 (high) for an `http` hook over plain `http://` or one that sends environment variables in its headers. The `prompt` text of `prompt` and `agent` hooks gets the skill text rules (CPL301 to CPL304).
+
+### Changed
+
+- The README opens with who the tool is for, a three-line quick start and real `verify` output, and links the related tools and the hub site.
 
 ### Fixed
 
@@ -37,6 +43,7 @@ All notable changes to this project are documented here. The format follows
 - `cc-plugin-lock scan`: static pre-install check of a plugin or marketplace folder with 20 rules (CPL101 to CPL107, CPL201 to CPL206, CPL301 to CPL304, CPL401 to CPL403), table, JSON and SARIF output.
 - Example plugins root, CI on Python 3.11 and 3.12, container image `ghcr.io/basitalisandhu/cc-plugin-lock` published on version tags with an SPDX SBOM, a build provenance attestation and a keyless cosign signature, and PyPI trusted publishing (off until the repository variable `PYPI_PUBLISH` is set).
 
-[Unreleased]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/basitalisandhu/cc-plugin-lock/releases/tag/v0.1.0
