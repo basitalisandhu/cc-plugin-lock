@@ -243,7 +243,8 @@ Issues and pull requests are welcome, in particular plugin layouts that `lock` m
 - [claude-mcp-allow](https://github.com/basitalisandhu/claude-mcp-allow): least-privilege Claude Code permission rules generated from MCP tool annotations.
 - [agent-config-audit](https://github.com/basitalisandhu/agent-config-audit): audit agent configuration files for risky permissions, secrets, unpinned servers and prompt-injection text.
 - [agent-security-skills](https://github.com/basitalisandhu/agent-security-skills): Claude Code plugin with security review skills and guard hooks.
-- More from the same maintainer: [github.com/basitalisandhu](https://github.com/basitalisandhu).
+- [claude-perm-sim](https://github.com/basitalisandhu/claude-perm-sim): shows which Claude Code permission rule decides a tool call and finds rules that let commands, paths or domains slip past.
+- All tools from the same maintainer: [basitalisandhu.github.io](https://basitalisandhu.github.io/) ([tools](https://basitalisandhu.github.io/tools/)) and [github.com/basitalisandhu](https://github.com/basitalisandhu).
 
 ## Licence
 
