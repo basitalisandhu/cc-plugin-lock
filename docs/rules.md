@@ -8,9 +8,9 @@ Script rules skip comment lines (starting with `#` other than a shebang, `//`, `
 
 Which files each group reads:
 
-- Hook rules (CPL101 to CPL107): every `command` and `args` string in `hooks/hooks.json` and in hook files or inline hooks the manifest declares, and every line of the scripts those hooks reference, of files under `hooks/`, `bin/` and `monitors/`, of files MCP or LSP servers start, and of other source files.
+- Hook rules (CPL101 to CPL110): every handler of every event in `hooks/hooks.json` and in hook files or inline hooks the manifest declares (all handler types in the [hooks reference](https://code.claude.com/docs/en/hooks): `command`, `http`, `mcp_tool`, `prompt` and `agent`), every `command` and `args` string in `hooks/hooks.json` and in hook files or inline hooks the manifest declares, and every line of the scripts those hooks reference, of files under `hooks/`, `bin/` and `monitors/`, of files MCP or LSP servers start, and of other source files.
 - MCP rules (CPL2xx): `.mcp.json`, files named by the manifest's `mcpServers`, and inline `mcpServers` in `plugin.json`.
-- Text rules (CPL3xx): Markdown in `skills/`, `commands/`, `agents/` and output styles, plus a root `SKILL.md`.
+- Text rules (CPL3xx): Markdown in `skills/`, `commands/`, `agents/` and output styles, a root `SKILL.md`, and the `prompt` text of `prompt` and `agent` hook handlers.
 - Manifest rules (CPL4xx): component paths in `plugin.json`, symbolic links, and `bin/`.
 
 This overlaps on purpose with [agent-config-audit](https://github.com/basitalisandhu/agent-config-audit), which audits a project's whole agent configuration (settings permissions, secrets in `.mcp.json`, `CLAUDE.md`, `AGENTS.md`, Cursor rules). `scan` is the narrower pre-install check for one plugin; run agent-config-audit for the project around it.
@@ -42,6 +42,18 @@ Network call from a hook or script (medium). `curl`, `wget`, `nc`, `socat`, `scp
 ## CPL107
 
 Writes to shell start-up files, agent settings or SSH keys (high). The CPL105 patterns with a target such as `~/.bashrc`, `~/.zshrc`, `~/.profile`, `~/.claude/`, `.mcp.json`, `authorized_keys`, `known_hosts`, `crontab`, `LaunchAgents`, `~/.config/autostart`, `/etc/`, `~/.gitconfig`, `~/.npmrc` or `~/.pypirc`. These persist after the plugin is disabled.
+
+## CPL108
+
+Hook sees every tool call (low, raised to medium). A handler on a tool event (`PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionRequest`, `PermissionDenied`) whose group has no matcher, an empty matcher, `*` or `.*`. Such a hook receives the input and output of every tool call, including file contents and command output. The finding is medium when the same handler also makes a network call: an `http` handler, a `command` or `args` string that matches CPL101 or CPL106, or a `${CLAUDE_PLUGIN_ROOT}/...` script that has a CPL101 or CPL106 finding.
+
+## CPL109
+
+HTTP hook sends event data to a remote server (medium). A handler with `"type": "http"` POSTs the hook's JSON input to its `url` ([HTTP hook fields](https://code.claude.com/docs/en/hooks)). Loopback hosts are not reported. The `allowedHttpHookUrls` setting limits which URLs any hook may call.
+
+## CPL110
+
+HTTP hook sends data unencrypted or with environment variables (high). An `http` handler whose `url` is plain `http://` to a host that is not loopback, or that lists `allowedEnvVars`, which lets it put those environment variables into the headers it sends to a remote host.
 
 ## CPL201
 

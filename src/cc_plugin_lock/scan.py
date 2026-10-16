@@ -27,6 +27,7 @@ from .classify import (
     load_json,
     load_manifest,
     mcp_servers,
+    plugin_root_refs,
 )
 from .hashing import walk
 
@@ -74,6 +75,24 @@ RULES: dict[str, dict[str, str]] = {
         "category": "hooks",
         "title": "Writes to shell start-up files, agent settings or SSH keys",
         "recommendation": "A plugin that edits ~/.zshrc, ~/.bashrc, ~/.claude/, authorized_keys, crontab or launch agents persists beyond the plugin. Remove the write or do not install the plugin.",
+    },
+    "CPL108": {
+        "severity": LOW,
+        "category": "hooks",
+        "title": "Hook sees every tool call",
+        "recommendation": 'A tool-event hook with no matcher, "*" or ".*" receives the input and output of every tool call. Check that it needs them; it is raised to medium when the same handler also makes a network call.',
+    },
+    "CPL109": {
+        "severity": MEDIUM,
+        "category": "hooks",
+        "title": "HTTP hook sends event data to a remote server",
+        "recommendation": "An http hook POSTs the hook's JSON input (tool inputs and outputs, prompts, file paths) to the URL. Confirm you trust the host; allowedHttpHookUrls in settings limits which URLs hooks may call.",
+    },
+    "CPL110": {
+        "severity": HIGH,
+        "category": "hooks",
+        "title": "HTTP hook sends data unencrypted or with environment variables",
+        "recommendation": "The hook posts event data over plain http to a non-loopback host, or interpolates environment variables (allowedEnvVars) into headers sent to a remote host. Use https and pass no secrets, or do not install the plugin.",
     },
     "CPL201": {
         "severity": HIGH,
@@ -259,6 +278,11 @@ CODE_SUFFIXES_FOR_SCAN = frozenset(
         "",
     }
 )
+# Hook events whose matcher filters tool names (https://code.claude.com/docs/en/hooks).
+TOOL_EVENTS = frozenset(
+    {"PreToolUse", "PostToolUse", "PostToolUseFailure", "PermissionRequest", "PermissionDenied"}
+)
+MATCH_ALL = frozenset({"", "*", ".*", ".+", "^.*$", "^.*", ".*$"})
 MARKDOWN_CLASSES = frozenset({"skills", "commands", "agents", "output-styles"})
 SCRIPT_CLASSES = frozenset({"hooks", "monitors", "executables", "mcp", "lsp", "code"})
 MAX_FILE_BYTES = 2_000_000
@@ -270,6 +294,7 @@ class Finding:
     file: str
     line: int
     evidence: str
+    raised: str | None = None  # a severity above the rule's own, for this one finding
 
     @property
     def rule(self) -> dict[str, str]:
@@ -277,7 +302,7 @@ class Finding:
 
     @property
     def severity(self) -> str:
-        return self.rule["severity"]
+        return self.raised or self.rule["severity"]
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -316,13 +341,16 @@ class Scanner:
         self.errors: list[str] = []
         self.files: list[str] = []
         self._seen: set[tuple[str, str, int]] = set()
+        # (config file, line, evidence, handler) for tool hooks with an all-matching matcher;
+        # their severity depends on script findings, so they are added after the scripts.
+        self._match_all: list[tuple[str, int, str, dict[str, Any]]] = []
 
-    def add(self, rid: str, file: str, line: int, evidence: str) -> None:
+    def add(self, rid: str, file: str, line: int, evidence: str, raised: str | None = None) -> None:
         rel = f"{self.label}{file}"
         key = (rid, rel, line)
         if key not in self._seen:
             self._seen.add(key)
-            self.findings.append(Finding(rid, rel, line, _evidence(evidence)))
+            self.findings.append(Finding(rid, rel, line, _evidence(evidence), raised))
 
     def _read(self, rel: str) -> str | None:
         path = self.root / rel
@@ -356,9 +384,12 @@ class Scanner:
             if rel in self.files:
                 self._hook_config(rel)
         if isinstance(manifest.get("hooks"), (dict, list)):
+            mrel = ".claude-plugin/plugin.json"
+            mtext = (self._read(mrel) or "") if mrel in self.files else ""
             for item in _as_list(manifest["hooks"]):
                 if isinstance(item, dict):
-                    self._command_strings(".claude-plugin/plugin.json", item)
+                    self._command_strings(mrel, item)
+                    self._handlers(mrel, item, mtext)
         self._mcp(manifest, classifier)
         for rel in self.files:
             cls = classes[rel]
@@ -379,6 +410,7 @@ class Scanner:
                     self._script(rel, text)
         if any(f == "bin" or f.startswith("bin/") for f in self.files):
             self.add("CPL403", "bin/", 0, "bin/ directory present")
+        self._resolve_match_all()
         self.findings.sort(key=lambda f: (f.file, f.line, f.id))
         return self
 
@@ -445,6 +477,67 @@ class Scanner:
             self.errors.append(f"{self.label}{rel}: invalid JSON: {exc.msg} at line {exc.lineno}")
             return
         self._command_strings(rel, data, text)
+        self._handlers(rel, data, text)
+
+    def _handlers(self, rel: str, data: Any, text: str) -> None:
+        """Rules on hook handler types: http (CPL109/110), prompt and agent text, matchers."""
+        events = data.get("hooks") if isinstance(data, dict) else None
+        if not isinstance(events, dict):
+            events = data if isinstance(data, dict) else {}
+        for event, groups in events.items():
+            if not isinstance(groups, list):
+                continue
+            for group in groups:
+                if not isinstance(group, dict) or not isinstance(group.get("hooks"), list):
+                    continue
+                matcher = group.get("matcher")
+                for h in group["hooks"]:
+                    if not isinstance(h, dict):
+                        continue
+                    htype = str(h.get("type", "command"))
+                    if htype == "http" and isinstance(h.get("url"), str):
+                        self._http_hook(rel, text, event, h)
+                    elif htype in ("prompt", "agent") and isinstance(h.get("prompt"), str):
+                        start = _line_of(text, h["prompt"].splitlines()[0] if h["prompt"] else "")
+                        for i, line in enumerate(h["prompt"].splitlines()):
+                            self._text_line(rel, start + i, line)
+                    if event in TOOL_EVENTS and (
+                        matcher is None
+                        or (isinstance(matcher, str) and matcher.strip() in MATCH_ALL)
+                    ):
+                        anchor = h.get("url") or h.get("command") or h.get("prompt") or event
+                        line = _line_of(text, str(anchor)) if text else 1
+                        shown = "(none)" if matcher is None else repr(matcher)
+                        self._match_all.append(
+                            (rel, line, f"{event} hook with matcher {shown}: {anchor}", h)
+                        )
+
+    def _http_hook(self, rel: str, text: str, event: str, h: dict[str, Any]) -> None:
+        url = h["url"]
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
+        if _loopback(host):
+            return
+        line = _line_of(text, url) if text else 1
+        env = h.get("allowedEnvVars")
+        env_names = [e for e in env if isinstance(e, str)] if isinstance(env, list) else []
+        if parsed.scheme == "http" or env_names:
+            extra = f" with {', '.join(env_names)}" if env_names else ""
+            self.add("CPL110", rel, line, f"{event}: {url}{extra}")
+        else:
+            self.add("CPL109", rel, line, f"{event}: {url}")
+
+    def _resolve_match_all(self) -> None:
+        network_files = {f.file for f in self.findings if f.id in ("CPL101", "CPL106")}
+        for rel, line, evidence, h in self._match_all:
+            words = [h.get("command")] + (h.get("args") if isinstance(h.get("args"), list) else [])
+            joined = " ".join(w for w in words if isinstance(w, str))
+            networked = (
+                h.get("type") == "http"
+                or bool(joined and (NETWORK.search(joined) or PIPE_TO_SHELL.search(joined)))
+                or any(f"{self.label}{ref}" in network_files for ref in plugin_root_refs(h))
+            )
+            self.add("CPL108", rel, line, evidence, MEDIUM if networked else None)
 
     def _manifest_rules(self, manifest: dict[str, Any]) -> None:
         rel = ".claude-plugin/plugin.json"
@@ -600,28 +693,32 @@ class Scanner:
 
     def _markdown(self, rel: str, text: str) -> None:
         for i, line in enumerate(text.splitlines(), 1):
-            m = INSTRUCTION_OVERRIDE.search(line)
-            if m and not _quoted(line, m.start()):
-                self.add("CPL301", rel, i, line)
-            if CONCEALMENT.search(line):
-                self.add("CPL302", rel, i, line)
-            for m in URL.finditer(line):
-                url = m.group(0)
-                low = url.lower()
-                host = (urlparse(url).hostname or "").lower()
-                if (
-                    any(h in host for h in CAPTURE_HOSTS)
-                    or any(p in low for p in CAPTURE_PATHS)
-                    or TEMPLATED_QUERY.search(url)
-                ):
-                    self.add("CPL303", rel, i, line)
-                    break
-            if HIDDEN_CHARS.search(line):
-                self.add("CPL304", rel, i, line)
-            if PIPE_TO_SHELL.search(line):
-                self.add("CPL101", rel, i, line)
-            if CREDENTIAL_STORE.search(line):
-                self.add("CPL103", rel, i, line)
+            self._text_line(rel, i, line)
+
+    def _text_line(self, rel: str, i: int, line: str) -> None:
+        """Text rules for one line of a skill, command, agent or prompt-hook prompt."""
+        m = INSTRUCTION_OVERRIDE.search(line)
+        if m and not _quoted(line, m.start()):
+            self.add("CPL301", rel, i, line)
+        if CONCEALMENT.search(line):
+            self.add("CPL302", rel, i, line)
+        for m in URL.finditer(line):
+            url = m.group(0)
+            low = url.lower()
+            host = (urlparse(url).hostname or "").lower()
+            if (
+                any(h in host for h in CAPTURE_HOSTS)
+                or any(p in low for p in CAPTURE_PATHS)
+                or TEMPLATED_QUERY.search(url)
+            ):
+                self.add("CPL303", rel, i, line)
+                break
+        if HIDDEN_CHARS.search(line):
+            self.add("CPL304", rel, i, line)
+        if PIPE_TO_SHELL.search(line):
+            self.add("CPL101", rel, i, line)
+        if CREDENTIAL_STORE.search(line):
+            self.add("CPL103", rel, i, line)
 
 
 QUOTES = "\"'`\u201c\u2018"
@@ -667,17 +764,20 @@ def _py_pinned(spec: str) -> bool:
     return bool(PY_EXACT.match(spec))
 
 
+def _loopback(host: str) -> bool:
+    if host == "localhost" or host.endswith(".localhost"):
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
 def _insecure_remote(url: str) -> bool:
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "ws"):
         return False
-    host = (parsed.hostname or "").lower()
-    if host in ("localhost",) or host.endswith(".localhost"):
-        return False
-    try:
-        return not ipaddress.ip_address(host).is_loopback
-    except ValueError:
-        return True
+    return not _loopback((parsed.hostname or "").lower())
 
 
 def is_marketplace(root: Path) -> bool:

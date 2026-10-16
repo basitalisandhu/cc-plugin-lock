@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `scan` checks every hook handler type in the current hooks reference, not only `command`: CPL108 (low, medium when the handler also calls the network) for a tool-event hook whose matcher sees every tool call (#4); CPL109 (medium) for an `http` hook that posts event data to a remote server; CPL110 (high) for an `http` hook over plain `http://` or one that sends environment variables in its headers. The `prompt` text of `prompt` and `agent` hooks gets the skill text rules (CPL301 to CPL304).
+
 ### Fixed
 
 - The `.in_use/<pid>` markers that current Claude Code releases write into each cached plugin version are no longer hashed, so `verify` stops reporting added and removed files after every session. Locks written by 0.2.0 that recorded them are read without them.
