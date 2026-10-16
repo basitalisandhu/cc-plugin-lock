@@ -12,7 +12,7 @@ from typing import Any
 from . import __version__
 from .classify import Classifier
 from .discover import Discovery, Plugin, discover, display_path
-from .hashing import HashError, class_hashes, hash_tree, read_normalised, tree_hash
+from .hashing import HashError, class_hashes, excluded, hash_tree, read_normalised, tree_hash
 
 LOCKFILE_VERSION = 1
 DEFAULT_LOCK = "cc-plugins.lock.json"
@@ -156,7 +156,34 @@ def read(path: Path) -> dict[str, Any]:
             f"lock file {path} is not valid JSON: {exc.msg} at line {exc.lineno}"
         ) from exc
     validate(doc, path)
+    drop_default_excluded(doc)
     return doc
+
+
+def drop_default_excluded(doc: dict[str, Any]) -> list[str]:
+    """Forget files a lock recorded that this version leaves out by default.
+
+    A lock written before a default exclusion existed (for example the ``.in_use/``
+    markers Claude Code writes into cached plugins) would otherwise report those files
+    as removed on every run. The plugin's hashes are recomputed from the remaining files,
+    exactly as ``build`` would compute them. Returns the dropped ``plugin: path`` pairs.
+    """
+    dropped: list[str] = []
+    for key, rec in doc.get("plugins", {}).items():
+        files = rec["files"]
+        gone = [rel for rel in files if excluded(rel, ())]
+        if not gone:
+            continue
+        for rel in gone:
+            del files[rel]
+            dropped.append(f"{key}: {rel}")
+        rec["contentHash"] = tree_hash((rel, f["sha256"]) for rel, f in files.items())
+        groups: dict[str, list[tuple[str, str]]] = {}
+        for rel, f in files.items():
+            groups.setdefault(f.get("class", "other"), []).append((rel, f["sha256"]))
+        rec["components"] = {c: tree_hash(groups[c]) for c in sorted(groups)}
+        rec["fileCount"] = len(files)
+    return dropped
 
 
 def validate(doc: Any, path: Path | str = "lock") -> None:

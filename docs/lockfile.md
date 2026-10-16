@@ -21,7 +21,7 @@ Timestamps (`installedAt`, `lastUpdated`) are not recorded, so two locks of an u
 
 ## Hashing
 
-1. Walk the plugin directory without following symbolic links. Skip `.git/`, `__pycache__/`, `.orphaned_at`, `.DS_Store`, `*.pyc` and every `--exclude` pattern (matched with `fnmatch` against the posix path relative to the plugin root; `dir/**` also excludes the directory itself).
+1. Walk the plugin directory without following symbolic links. Skip `.git/`, `__pycache__/`, `.in_use/` (the per-session markers Claude Code writes into each cached plugin version), `.orphaned_at`, `.DS_Store`, `*.pyc` and every `--exclude` pattern (matched with `fnmatch` against the posix path relative to the plugin root; `dir/**` also excludes the directory itself). When a lock written by an older version lists a file that is now excluded by default, `verify`, `diff` and `lock --only` drop it and recompute that plugin's hashes from the other files, so the upgrade does not report the marker files as removed.
 2. Regular file: read the bytes. If the first 8192 bytes contain no NUL byte the file is text and every CRLF is replaced by LF. The digest is `sha256:` plus the hex SHA-256 of the result, and `size` is its length in bytes.
 3. Symbolic link: the digest is the SHA-256 of the bytes `symlink`, a NUL byte, and the link target as written; `size` is the target's length and the record carries `"symlink": "<target>"`.
 4. Tree hash (`contentHash`, and each entry of `components`): sort the files by the UTF-8 bytes of their path, then SHA-256 the concatenation of `<path>`, a NUL byte, `<digest>`, and a newline for each file.
@@ -47,7 +47,7 @@ Every file gets exactly one class. The class sets the severity of a change.
 | `commands` | medium | `commands/` or what the manifest's `commands` names |
 | `agents` | medium | `agents/` or what the manifest's `agents` names |
 | `output-styles` | medium | `output-styles/`, `themes/`, `workflows/` and their manifest keys |
-| `code` | medium | any other source file (`.py`, `.sh`, `.js`, `.ts` and similar) |
+| `code` | medium | any other source file (`.py`, `.sh`, `.js`, `.ts` and similar), and a file with no extension that starts with `#!` or has an execute bit |
 | `docs` | low | `.md`, `.txt`, images, `README*`, `LICENSE*`, `CHANGELOG*` outside the classes above |
 | `other` | low | anything else |
 

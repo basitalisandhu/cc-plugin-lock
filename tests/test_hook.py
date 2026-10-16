@@ -21,7 +21,7 @@ def test_hook_prints_valid_settings_json(locked):
     doc = json.loads(out)
     assert list(doc) == ["hooks"] and list(doc["hooks"]) == ["SessionStart"]
     [group] = doc["hooks"]["SessionStart"]
-    assert group["matcher"] == "startup|resume"
+    assert group["matcher"] == "startup|resume|fork"
     h = _handler(doc)
     assert h["type"] == "command" and h["command"] == "cc-plugin-lock"
     assert h["args"][:2] == ["verify", "--strict"]

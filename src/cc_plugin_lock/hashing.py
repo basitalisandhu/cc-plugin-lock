@@ -3,8 +3,9 @@
 The algorithm is documented in ``docs/lockfile.md``. In short:
 
 1. Walk the plugin directory without following symbolic links, skipping the default
-   exclusions (``.git/``, ``__pycache__/``, ``.orphaned_at``, ``.DS_Store``, ``*.pyc``)
-   and any ``--exclude`` patterns.
+   exclusions (``.git/``, ``__pycache__/``, the ``.in_use/`` session markers Claude Code
+   writes into each cached plugin, ``.orphaned_at``, ``.DS_Store``, ``*.pyc``) and any
+   ``--exclude`` patterns.
 2. For a regular file, read the bytes. When the first 8 KiB contain no NUL byte the file
    is treated as text and every CRLF is replaced by LF. The file digest is the SHA-256 of
    the result and the recorded size is its length.
@@ -25,7 +26,9 @@ from pathlib import Path
 HASH_PREFIX = "sha256:"
 TEXT_SNIFF_BYTES = 8192
 
-DEFAULT_EXCLUDED_DIRS: frozenset[str] = frozenset({".git", "__pycache__"})
+# ``.in_use/<pid>`` files are written by Claude Code into each cached plugin version while a
+# session uses it, and removed again later; they are bookkeeping, not plugin content.
+DEFAULT_EXCLUDED_DIRS: frozenset[str] = frozenset({".git", "__pycache__", ".in_use"})
 DEFAULT_EXCLUDED_FILES: frozenset[str] = frozenset({".orphaned_at", ".DS_Store"})
 DEFAULT_EXCLUDED_SUFFIXES: tuple[str, ...] = (".pyc",)
 

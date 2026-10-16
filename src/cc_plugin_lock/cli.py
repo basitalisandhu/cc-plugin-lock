@@ -14,7 +14,7 @@ from . import __version__
 from .classify import LOW, SEVERITIES
 from .discover import default_root, discover, display_path, expand_path
 from .hashing import HashError, read_normalised
-from .hookcfg import block, render_snippet, settings_snippet, warn
+from .hookcfg import DEFAULT_MATCHER, block, render_snippet, settings_snippet, warn
 from .lockfile import (
     DEFAULT_LOCK,
     LockError,
@@ -208,7 +208,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="command that runs this tool, e.g. 'uvx cc-plugin-lock' (default: cc-plugin-lock)",
     )
     p.add_argument(
-        "--matcher", default="startup|resume", help="SessionStart matcher (default: startup|resume)"
+        "--matcher",
+        default=DEFAULT_MATCHER,
+        help=f"SessionStart matcher (default: {DEFAULT_MATCHER})",
     )
     p.add_argument("--timeout", type=int, default=30, help="hook timeout in seconds (default: 30)")
     p.add_argument(
