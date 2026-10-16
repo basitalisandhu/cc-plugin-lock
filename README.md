@@ -1,14 +1,33 @@
 # cc-plugin-lock: Lock file for Claude Code plugins
 
-**cc-plugin-lock pins Claude Code marketplace plugins and skills to content hashes and verifies them before load, so a plugin that changes upstream cannot silently change what runs on your machine.**
+**cc-plugin-lock pins Claude Code marketplace plugins and skills to content hashes and checks them at every session start, so a plugin that changes upstream cannot silently change what runs on your machine.**
 
 [![CI](https://github.com/basitalisandhu/cc-plugin-lock/actions/workflows/ci.yml/badge.svg)](https://github.com/basitalisandhu/cc-plugin-lock/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 
+**For** developers and teams who install third-party Claude Code plugins and want the guarantee a package lock file gives: the plugin code that runs is the code you reviewed.
+
 ```bash
 pipx install git+https://github.com/basitalisandhu/cc-plugin-lock
+cc-plugin-lock lock -o ~/.claude/cc-plugins.lock.json --store
+cc-plugin-lock verify --lock ~/.claude/cc-plugins.lock.json
 ```
+
+After one line is added to a locked plugin's hook script (real output from the bundled [example plugins](examples/plugins-root)):
+
+```text
+$ cc-plugin-lock verify
+STATUS     SEVERITY  PLUGIN          DETAIL
+-------------------------------------------
+changed    HIGH      formatter@demo  1 file(s): hooks 1
+unchanged  -         notes@demo
+
+formatter@demo (HIGH):
+  modified  HIGH    hooks          scripts/format.sh  f09e6a07d63e -> e1aca517ceb5
+```
+
+Part of a set of Claude Code security tools: [basitalisandhu.github.io](https://basitalisandhu.github.io/), with [agent-config-audit](https://github.com/basitalisandhu/agent-config-audit) and [claude-perm-sim](https://github.com/basitalisandhu/claude-perm-sim).
 
 ## Demo
 
@@ -70,13 +89,13 @@ The repository ships a demo plugins root in [examples/plugins-root](examples/plu
 
 ```text
 $ cc-plugin-lock lock --root plugins --store
-cc-plugin-lock 0.2.0: locked 2 plugin(s) and 1 marketplace(s) under /tmp/demo/plugins into cc-plugins.lock.json
+cc-plugin-lock 0.3.0: locked 2 plugin(s) and 1 marketplace(s) under /tmp/demo/plugins into cc-plugins.lock.json
   formatter@demo                           8086c12b6d6c     5 file(s)  docs, hooks, manifest, skills
   notes@demo                               8184e96643f3     3 file(s)  commands, manifest, skills
 stored file contents under /tmp/demo/.cc-plugin-lock
 
 $ cc-plugin-lock verify
-cc-plugin-lock 0.2.0 verify: 2 plugin(s) compared with cc-plugins.lock.json
+cc-plugin-lock 0.3.0 verify: 2 plugin(s) compared with cc-plugins.lock.json
 
 STATUS     SEVERITY  PLUGIN          DETAIL
 -------------------------------------------
@@ -152,9 +171,9 @@ Container image: each release tag publishes `ghcr.io/basitalisandhu/cc-plugin-lo
 
 ```bash
 docker run --rm -v "$HOME/.claude/plugins:/plugins:ro" -v "$PWD:/work" \
-  ghcr.io/basitalisandhu/cc-plugin-lock:0.2.0 lock --root /plugins
+  ghcr.io/basitalisandhu/cc-plugin-lock:0.3.0 lock --root /plugins
 docker run --rm -v "$HOME/.claude/plugins:/plugins:ro" -v "$PWD:/work" \
-  ghcr.io/basitalisandhu/cc-plugin-lock:0.2.0 verify --root /plugins
+  ghcr.io/basitalisandhu/cc-plugin-lock:0.3.0 verify --root /plugins
 ```
 
 A lock written in the container records `/plugins` as its root, so pass `--root ~/.claude/plugins` when you verify it on the host.
