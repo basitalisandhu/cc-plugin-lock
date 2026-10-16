@@ -26,7 +26,7 @@ cc-plugin-lock is for developers and teams who install third-party Claude Code p
 - `verify` recomputes the hashes and reports each plugin as unchanged, changed, added or removed. A changed hook, MCP server, LSP server, monitor, `bin/` file, manifest or dependency is HIGH; a changed skill, command, agent or script is MEDIUM; documentation is LOW. Table, Markdown, JSON or SARIF output.
 - `diff` shows a unified diff of a plugin against the locked content (with `lock --store`), or the changed paths with old and new hashes.
 - `hook` prints a `SessionStart` hook that runs `verify` and stops the session on a HIGH change.
-- `scan` checks a plugin folder before you install it: hooks that pipe downloads into a shell or read `~/.aws`, MCP servers on unpinned `npx -y` or `uvx` packages, skills that tell the model to ignore its instructions or hide things from you.
+- `scan` checks a plugin folder before you install it: hooks that pipe downloads into a shell or read `~/.aws`, `http` hooks that post event data to a remote server, tool hooks that see every call, MCP servers on unpinned `npx -y` or `uvx` packages, skills that tell the model to ignore its instructions or hide things from you.
 
 Standard library only, Python 3.11 or newer, no network access. It reads Claude Code's plugin directory and never writes to it.
 
@@ -235,7 +235,7 @@ No. It makes no network calls. The lock and the optional store stay where you wr
 
 ## Contributing
 
-Issues and pull requests are welcome, in particular plugin layouts that `lock` misclassifies and scan false positives or misses with a minimal plugin that shows them. Run `make check` (ruff and pytest) before opening a pull request and read [CONTRIBUTING.md](CONTRIBUTING.md). [docs/good-first-issues.md](docs/good-first-issues.md) lists six scoped starting points. Security problems: see [SECURITY.md](SECURITY.md).
+Issues and pull requests are welcome, in particular plugin layouts that `lock` misclassifies and scan false positives or misses with a minimal plugin that shows them. Run `make check` (ruff and pytest) before opening a pull request and read [CONTRIBUTING.md](CONTRIBUTING.md). [docs/good-first-issues.md](docs/good-first-issues.md) lists scoped starting points. Security problems: see [SECURITY.md](SECURITY.md).
 
 ## Related projects
 

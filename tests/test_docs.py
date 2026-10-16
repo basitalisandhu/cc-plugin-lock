@@ -57,6 +57,9 @@ def test_version_is_consistent():
     assert f"## [{__version__}]" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
 
-def test_good_first_issues_has_six_tasks():
+def test_good_first_issues_have_acceptance_criteria():
     doc = (ROOT / "docs" / "good-first-issues.md").read_text(encoding="utf-8")
-    assert len(re.findall(r"^## \d+\. ", doc, re.M)) == 6
+    tasks = re.split(r"^## \d+\. ", doc, flags=re.M)[1:]
+    assert len(tasks) >= 6
+    assert all("**Acceptance criteria.**" in t for t in tasks)
+    assert sum("(done" not in t.splitlines()[0] for t in tasks) >= 2
