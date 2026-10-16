@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- A lock whose file digests are not `sha256:` plus 64 hex digits is rejected. Before, an edited lock could make `diff` read and print a file outside the content store through a digest such as `sha256:../../file`.
 - The `.in_use/<pid>` markers that current Claude Code releases write into each cached plugin version are no longer hashed, so `verify` stops reporting added and removed files after every session. Locks written by 0.2.0 that recorded them are read without them.
 - An extensionless file that starts with `#!` or has an execute bit (for example `scripts/run`) is classed as `code` (medium) instead of `other` (low), and `scan` now reads it.
 - `hook` prints the matcher `startup|resume|fork`: forked sessions report their own `fork` source since Claude Code 2.1.214 and skipped the gate. Print the block again to update an existing setting.

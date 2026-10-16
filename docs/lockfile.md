@@ -121,4 +121,4 @@ Paths under your home directory are written with `~`, so the lock does not carry
 
 ## The content store
 
-`lock --store` also copies the normalised bytes of every file to `.cc-plugin-lock/objects/<first two hex digits>/<full hex digest>` next to the lock. `diff` reads it to print a unified diff against the locked content. The store is a cache: deleting it only makes `diff` fall back to listing hashes. Keep it out of version control (it holds copies of every plugin file).
+`lock --store` also copies the normalised bytes of every file to `.cc-plugin-lock/objects/<first two hex digits>/<full hex digest>` next to the lock. `diff` reads it to print a unified diff against the locked content. The store is a cache: deleting it only makes `diff` fall back to listing hashes. Keep it out of version control (it holds copies of every plugin file). Every `sha256` in a lock must be `sha256:` followed by 64 lower-case hex digits; a lock with any other value is rejected, because the digest names the store file that `diff` reads.

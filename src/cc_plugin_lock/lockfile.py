@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -17,6 +18,7 @@ from .hashing import HashError, class_hashes, excluded, hash_tree, read_normalis
 LOCKFILE_VERSION = 1
 DEFAULT_LOCK = "cc-plugins.lock.json"
 STORE_DIR = ".cc-plugin-lock"
+DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 class LockError(Exception):
@@ -208,6 +210,10 @@ def validate(doc: Any, path: Path | str = "lock") -> None:
         for rel, f in rec["files"].items():
             if not isinstance(f, dict) or not isinstance(f.get("sha256"), str):
                 raise LockError(f"{path}: plugin {key!r} file {rel!r} has no sha256")
+            # The digest names a file in the content store, so anything but a SHA-256 hex
+            # digest could point `diff` at a file outside it.
+            if not DIGEST.fullmatch(f["sha256"]):
+                raise LockError(f"{path}: plugin {key!r} file {rel!r} has an invalid sha256")
     if not isinstance(doc.get("marketplaces", {}), dict):
         raise LockError(f"{path}: marketplaces must be an object")
 
@@ -220,6 +226,8 @@ def store_dir(lock_path: Path) -> Path:
 
 
 def object_path(store: Path, digest: str) -> Path:
+    if not DIGEST.fullmatch(digest):
+        raise ValueError(f"not a sha256 digest: {digest!r}")
     hexd = digest.split(":", 1)[-1]
     return store / "objects" / hexd[:2] / hexd
 
@@ -245,5 +253,5 @@ def store_plugin(store: Path, plugin_path: Path, record: dict[str, Any]) -> int:
 def load_object(store: Path, digest: str) -> bytes | None:
     try:
         return object_path(store, digest).read_bytes()
-    except OSError:
+    except (OSError, ValueError):
         return None
