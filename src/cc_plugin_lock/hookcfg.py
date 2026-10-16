@@ -14,7 +14,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
-DEFAULT_MATCHER = "startup|resume"
+# "fork" is its own SessionStart source since Claude Code 2.1.214 (forked sessions used to
+# report "resume"); without it a forked session would skip the gate.
+# https://code.claude.com/docs/en/hooks#sessionstart
+DEFAULT_MATCHER = "startup|resume|fork"
 DEFAULT_TIMEOUT = 30
 STATUS_MESSAGE = "cc-plugin-lock: verifying installed plugins against the lock"
 

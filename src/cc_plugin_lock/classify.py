@@ -285,11 +285,28 @@ class Classifier:
                 return cls
         name = parts[-1].lower()
         suffix = PurePosixPath(name).suffix
-        if suffix in CODE_SUFFIXES:
+        if suffix in CODE_SUFFIXES or (not suffix and self._is_script(rel)):
             return "code"
         if suffix in DOC_SUFFIXES or name.startswith(DOC_STEMS):
             return "docs"
         return "other"
+
+    def _is_script(self, rel: str) -> bool:
+        """An extensionless file that starts with ``#!`` or has an execute bit.
+
+        Plugins often ship helpers such as ``scripts/run`` without a suffix; an agent or
+        command can start them, so they are code, not "other".
+        """
+        path = self.root / rel
+        try:
+            if path.is_symlink() or not path.is_file():
+                return False
+            if path.stat().st_mode & 0o111:
+                return True
+            with path.open("rb") as fh:
+                return fh.read(2) == b"#!"
+        except OSError:
+            return False
 
     def classify_all(self, paths: Iterable[str]) -> dict[str, str]:
         return {p: self.classify(p) for p in paths}

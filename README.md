@@ -171,7 +171,7 @@ A lock written in the container records `/plugins` as its root, so pass `--root 
 
 Every command has `--help`. `python -m cc_plugin_lock` works too.
 
-Where plugins are found: the plugins root is `~/.claude/plugins`, or `$CLAUDE_CODE_PLUGIN_CACHE_DIR` when set, or `--root`. `installed_plugins.json` there lists each install with its path, version and git commit; `known_marketplaces.json` lists each marketplace and its source. `verify` reuses the root, extra plugin directories and exclusions recorded in the lock unless you pass them again. The lock format, the hashing algorithm and the class table are in [docs/lockfile.md](docs/lockfile.md); the scan rules are in [docs/rules.md](docs/rules.md).
+Where plugins are found: the plugins root is `~/.claude/plugins`, or `$CLAUDE_CODE_PLUGIN_CACHE_DIR` when set, or `--root`. `installed_plugins.json` there lists each install with its path, version and git commit; `known_marketplaces.json` lists each marketplace and its source. The `.in_use/` markers Claude Code writes into each cached plugin while a session uses it are skipped, and the plugin's `data/` directory (`${CLAUDE_PLUGIN_DATA}`) is state, not code, so it is not locked. `verify` reuses the root, extra plugin directories and exclusions recorded in the lock unless you pass them again. The lock format, the hashing algorithm and the class table are in [docs/lockfile.md](docs/lockfile.md); the scan rules are in [docs/rules.md](docs/rules.md).
 
 ## The session gate
 
@@ -182,7 +182,7 @@ Where plugins are found: the plugins root is `~/.claude/plugins`, or `$CLAUDE_CO
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|resume",
+        "matcher": "startup|resume|fork",
         "hooks": [
           {
             "type": "command",
@@ -198,7 +198,7 @@ Where plugins are found: the plugins root is `~/.claude/plugins`, or `$CLAUDE_CO
 }
 ```
 
-Merge the `SessionStart` entry into `~/.claude/settings.json`. The handler uses exec form (`command` plus `args`), so the lock path is passed as one argument with no shell, the same shape [cc-hooks](https://github.com/basitalisandhu/cc-hooks) documents. `SessionStart` cannot block through exit code 2 (stderr only reaches the user), so the hook prints `{"continue": false, "stopReason": "..."}` on exit 0 for a change at or above `--fail-on`, a `systemMessage` warning for smaller changes, and nothing when the plugins match. With `--strict` (the default in the printed block) a missing or unreadable lock also stops the session; `--no-strict` turns that into a warning.
+Merge the `SessionStart` entry into `~/.claude/settings.json`. The matcher covers new, resumed and forked sessions; forks report their own `fork` source since Claude Code 2.1.214 ([SessionStart matchers](https://code.claude.com/docs/en/hooks#sessionstart)), so a lock gate written by an older version with `startup|resume` skips them: print the block again and replace it. The handler uses exec form (`command` plus `args`), so the lock path is passed as one argument with no shell, the same shape [cc-hooks](https://github.com/basitalisandhu/cc-hooks) documents. `SessionStart` cannot block through exit code 2 (stderr only reaches the user), so the hook prints `{"continue": false, "stopReason": "..."}` on exit 0 for a change at or above `--fail-on`, a `systemMessage` warning for smaller changes, and nothing when the plugins match. With `--strict` (the default in the printed block) a missing or unreadable lock also stops the session; `--no-strict` turns that into a warning.
 
 ## Limits
 
