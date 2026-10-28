@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-28
+
+### Added
+
+- `scan` on a marketplace folder checks the plugin sources in `.claude-plugin/marketplace.json`: CPL404 (high) for a `command` source, which Claude Code runs on your machine at install, on update and once per session, outside the lock; CPL405 (low) for a `github`, `url` or `git-subdir` source without a full `sha`, an `archive` without `sha256`, or an `npm` source without an exact version ([plugin sources](https://code.claude.com/docs/en/plugins/marketplace-reference#plugin-sources)).
+- `lock` warns when it finds no installed plugins under the plugins root, so a wrong `--root` no longer writes an empty lock without a word.
+- A Troubleshooting section in the README with real messages and fixes.
+- Seeded fuzz tests (bad bytes and wrong value types in every example file and in the lock file, each run time-limited), a scaling test (30 and 300 plugins), and a CI job that installs with pipx, runs the three quick start commands in a fresh `HOME` and compares the README sample.
+
+### Fixed
+
+- A JSON file nested too deeply (`installed_plugins.json`, `known_marketplaces.json`, a manifest, `marketplace.json`, `hooks.json` or `.mcp.json`) ended `lock`, `verify` or `scan` with a `RecursionError` traceback. It is now read as unreadable (a scan error for hook and MCP files), and a lock file nested too deeply is exit code 2 naming the file.
+
 ## [0.3.0] - 2026-10-16
 
 ### Added
@@ -43,7 +56,8 @@ All notable changes to this project are documented here. The format follows
 - `cc-plugin-lock scan`: static pre-install check of a plugin or marketplace folder with 20 rules (CPL101 to CPL107, CPL201 to CPL206, CPL301 to CPL304, CPL401 to CPL403), table, JSON and SARIF output.
 - Example plugins root, CI on Python 3.11 and 3.12, container image `ghcr.io/basitalisandhu/cc-plugin-lock` published on version tags with an SPDX SBOM, a build provenance attestation and a keyless cosign signature, and PyPI trusted publishing (off until the repository variable `PYPI_PUBLISH` is set).
 
-[Unreleased]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/basitalisandhu/cc-plugin-lock/releases/tag/v0.1.0

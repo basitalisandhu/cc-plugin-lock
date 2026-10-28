@@ -157,6 +157,8 @@ def read(path: Path) -> dict[str, Any]:
         raise LockError(
             f"lock file {path} is not valid JSON: {exc.msg} at line {exc.lineno}"
         ) from exc
+    except RecursionError as exc:
+        raise LockError(f"lock file {path} is not valid JSON: nested too deeply to parse") from exc
     validate(doc, path)
     drop_default_excluded(doc)
     return doc

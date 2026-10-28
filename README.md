@@ -89,13 +89,13 @@ The repository ships a demo plugins root in [examples/plugins-root](examples/plu
 
 ```text
 $ cc-plugin-lock lock --root plugins --store
-cc-plugin-lock 0.3.0: locked 2 plugin(s) and 1 marketplace(s) under /tmp/demo/plugins into cc-plugins.lock.json
+cc-plugin-lock 0.4.0: locked 2 plugin(s) and 1 marketplace(s) under /tmp/demo/plugins into cc-plugins.lock.json
   formatter@demo                           8086c12b6d6c     5 file(s)  docs, hooks, manifest, skills
   notes@demo                               8184e96643f3     3 file(s)  commands, manifest, skills
 stored file contents under /tmp/demo/.cc-plugin-lock
 
 $ cc-plugin-lock verify
-cc-plugin-lock 0.3.0 verify: 2 plugin(s) compared with cc-plugins.lock.json
+cc-plugin-lock 0.4.0 verify: 2 plugin(s) compared with cc-plugins.lock.json
 
 STATUS     SEVERITY  PLUGIN          DETAIL
 -------------------------------------------
@@ -171,9 +171,9 @@ Container image: each release tag publishes `ghcr.io/basitalisandhu/cc-plugin-lo
 
 ```bash
 docker run --rm -v "$HOME/.claude/plugins:/plugins:ro" -v "$PWD:/work" \
-  ghcr.io/basitalisandhu/cc-plugin-lock:0.3.0 lock --root /plugins
+  ghcr.io/basitalisandhu/cc-plugin-lock:0.4.0 lock --root /plugins
 docker run --rm -v "$HOME/.claude/plugins:/plugins:ro" -v "$PWD:/work" \
-  ghcr.io/basitalisandhu/cc-plugin-lock:0.3.0 verify --root /plugins
+  ghcr.io/basitalisandhu/cc-plugin-lock:0.4.0 verify --root /plugins
 ```
 
 A lock written in the container records `/plugins` as its root, so pass `--root ~/.claude/plugins` when you verify it on the host.
@@ -228,6 +228,20 @@ Merge the `SessionStart` entry into `~/.claude/settings.json`. The matcher cover
 - **Scan rules are heuristics.** They find the obvious cases. An author who wants to hide something can. A clean scan means nothing obvious matched.
 - **Only execute bits are tracked**, separately from the unchanged content hashes. An execute-bit-only change is reported as `mode`; other permissions, ownership and symbolic-link target modes are not tracked.
 - **Plugins synced from claude.ai** (`<name>@synced`) and session-only `--plugin-dir` plugins have no install record; lock a directory explicitly with `--plugin-dir`.
+
+## Troubleshooting
+
+Each message below is real output. Errors exit with code 2; changes or findings at or above `--fail-on` exit with code 1.
+
+| You see | What it means | Fix |
+|---|---|---|
+| `error: externally-managed-environment` from `pip install` | Your system Python refuses installs outside a virtual environment. | Use `pipx install git+https://github.com/basitalisandhu/cc-plugin-lock`, or a venv. |
+| `cc-plugin-lock: lock file not found: cc-plugins.lock.json (create it with ...)` | `verify` and `diff` look for `cc-plugins.lock.json` in the current directory unless you pass `--lock`. | Pass the same `--lock` path you used with `lock`, for example `--lock ~/.claude/cc-plugins.lock.json`. |
+| `cc-plugin-lock: warning: no installed plugins found under DIR; check --root ...` | The plugins root has no `installed_plugins.json` and no plugin cache. | Point `--root` at the folder that holds `installed_plugins.json` (normally `~/.claude/plugins`). |
+| `verify` reports `changed` right after `claude plugin update` | The update fetched new content; that is what the lock is for. | Review it with `cc-plugin-lock diff <plugin>`, then accept it with `cc-plugin-lock lock --only <plugin>`. |
+| `diff` shows changed paths and hashes but no unified diff | The lock was written without `--store`, so the old content is not kept. | Re-lock with `--store` once you have reviewed the current content. |
+| `cc-plugin-lock: not a directory: PATH` from `scan` | `scan` takes a plugin or marketplace folder. For a marketplace, a relative plugin source that does not exist is reported the same way. | Pass the folder that holds `.claude-plugin/`. |
+| `cc-plugin-lock: lock file PATH is not valid JSON: ...` | The lock file was edited by hand, cut off or merged badly. | Restore it from version control, or write a new one with `cc-plugin-lock lock` after reviewing your plugins. |
 
 ## Frequently asked questions
 
