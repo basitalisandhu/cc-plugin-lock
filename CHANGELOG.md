@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-29
+
+### Fixed
+
+- Deeply nested JSON in a plugin, marketplace, hook or MCP config file, or in the lock file, gets the same "nested too deeply" result on every supported Python. Python 3.14 no longer raises `RecursionError` from `json.loads` at the old depth (balanced input parsed without a finding), so JSON is now checked for nesting first (limit 200 levels).
+- CI tests Python 3.14.
+
 ## [0.4.0] - 2026-10-28
 
 ### Added
@@ -56,7 +63,8 @@ All notable changes to this project are documented here. The format follows
 - `cc-plugin-lock scan`: static pre-install check of a plugin or marketplace folder with 20 rules (CPL101 to CPL107, CPL201 to CPL206, CPL301 to CPL304, CPL401 to CPL403), table, JSON and SARIF output.
 - Example plugins root, CI on Python 3.11 and 3.12, container image `ghcr.io/basitalisandhu/cc-plugin-lock` published on version tags with an SPDX SBOM, a build provenance attestation and a keyless cosign signature, and PyPI trusted publishing (off until the repository variable `PYPI_PUBLISH` is set).
 
-[Unreleased]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/basitalisandhu/cc-plugin-lock/compare/v0.1.0...v0.2.0

@@ -16,6 +16,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import urlparse
 
+from . import _jsondepth
 from .classify import (
     HIGH,
     LOW,
@@ -484,7 +485,7 @@ class Scanner:
         if text is None:
             return
         try:
-            data = json.loads(text)
+            data = _jsondepth.loads(text)
         except json.JSONDecodeError as exc:
             self.errors.append(f"{self.label}{rel}: invalid JSON: {exc.msg} at line {exc.lineno}")
             return
@@ -620,7 +621,7 @@ class Scanner:
                 if text is None:
                     continue
                 try:
-                    configs.append((rel, mcp_servers(json.loads(text))))
+                    configs.append((rel, mcp_servers(_jsondepth.loads(text))))
                 except json.JSONDecodeError as exc:
                     self.errors.append(
                         f"{self.label}{rel}: invalid JSON: {exc.msg} at line {exc.lineno}"

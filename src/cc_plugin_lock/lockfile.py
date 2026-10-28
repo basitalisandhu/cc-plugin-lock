@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from . import __version__
+from . import __version__, _jsondepth
 from .classify import Classifier
 from .discover import Discovery, Plugin, discover, display_path
 from .hashing import HashError, class_hashes, excluded, hash_tree, read_normalised, tree_hash
@@ -146,7 +146,7 @@ def atomic_write(path: Path, text: str) -> None:
 def read(path: Path) -> dict[str, Any]:
     """Load and validate a lock file."""
     try:
-        doc = json.loads(path.read_text(encoding="utf-8"))
+        doc = _jsondepth.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
         raise LockError(
             f"lock file not found: {path} (create it with `cc-plugin-lock lock`)"
