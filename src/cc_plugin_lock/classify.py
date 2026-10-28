@@ -14,6 +14,8 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from . import _jsondepth
+
 HIGH = "high"
 MEDIUM = "medium"
 LOW = "low"
@@ -129,7 +131,7 @@ def _as_list(value: Any) -> list[Any]:
 
 def load_json(path: Path) -> Any:
     try:
-        return json.loads(path.read_text(encoding="utf-8-sig"))
+        return _jsondepth.loads(path.read_text(encoding="utf-8-sig"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, RecursionError):
         return None
 
