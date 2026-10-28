@@ -172,6 +172,18 @@ RULES: dict[str, dict[str, str]] = {
         "title": "Plugin adds executables to the Bash PATH",
         "recommendation": "Files in bin/ run as bare commands while the plugin is enabled; review each one.",
     },
+    "CPL404": {
+        "severity": HIGH,
+        "category": "manifest",
+        "title": "Marketplace entry runs a command on your machine to produce the plugin",
+        "recommendation": "Read the command before you install; Claude Code runs it at install, on update and again once per session, outside the lock.",
+    },
+    "CPL405": {
+        "severity": LOW,
+        "category": "manifest",
+        "title": "Marketplace entry fetches the plugin without a pinned commit or digest",
+        "recommendation": "Pin the source: sha (a full commit) for github, url and git-subdir, sha256 for archive, an exact version for npm.",
+    },
 }
 
 FORMATS = ("table", "json", "sarif")
@@ -476,6 +488,9 @@ class Scanner:
         except json.JSONDecodeError as exc:
             self.errors.append(f"{self.label}{rel}: invalid JSON: {exc.msg} at line {exc.lineno}")
             return
+        except RecursionError:
+            self.errors.append(f"{self.label}{rel}: invalid JSON: nested too deeply to parse")
+            return
         self._command_strings(rel, data, text)
         self._handlers(rel, data, text)
 
@@ -609,6 +624,10 @@ class Scanner:
                 except json.JSONDecodeError as exc:
                     self.errors.append(
                         f"{self.label}{rel}: invalid JSON: {exc.msg} at line {exc.lineno}"
+                    )
+                except RecursionError:
+                    self.errors.append(
+                        f"{self.label}{rel}: invalid JSON: nested too deeply to parse"
                     )
         for item in _as_list(manifest.get("mcpServers")):
             if isinstance(item, dict):
@@ -806,6 +825,66 @@ def marketplace_plugin_dirs(root: Path) -> list[str]:
     return sorted(set(out))
 
 
+_EXACT_NPM = re.compile(r"^v?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
+
+
+def marketplace_source_findings(root: Path) -> list[Finding]:
+    """CPL404 and CPL405 for the plugin sources of a marketplace.json
+    (https://code.claude.com/docs/en/plugins/marketplace-reference#plugin-sources)."""
+    rel = ".claude-plugin/marketplace.json"
+    path = root / rel
+    data = load_json(path)
+    if not isinstance(data, dict) or not isinstance(data.get("plugins"), list):
+        return []
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeDecodeError):
+        text = ""
+    out: list[Finding] = []
+    for entry in data["plugins"]:
+        if not isinstance(entry, dict) or not isinstance(entry.get("source"), dict):
+            continue
+        name = entry.get("name") if isinstance(entry.get("name"), str) else "?"
+        src = entry["source"]
+        kind = src.get("source")
+        line = _line_of(text, f'"{name}"') if name != "?" else 1
+        if kind == "command":
+            cmd = src.get("command") if isinstance(src.get("command"), str) else ""
+            out.append(Finding("CPL404", rel, line, f"{name}: {cmd}"))
+        elif kind in ("github", "url", "git-subdir"):
+            sha = src.get("sha")
+            if not (isinstance(sha, str) and re.fullmatch(r"[0-9a-f]{40}", sha)):
+                where = src.get("repo") or src.get("url") or ""
+                ref = src.get("ref")
+                detail = (
+                    f"{kind} {where}" + (f" ref {ref}" if isinstance(ref, str) else "") + ", no sha"
+                )
+                out.append(Finding("CPL405", rel, line, f"{name}: {detail}"))
+        elif kind == "archive":
+            digest = src.get("sha256")
+            if not (isinstance(digest, str) and re.fullmatch(r"[0-9A-Fa-f]{64}", digest)):
+                out.append(
+                    Finding("CPL405", rel, line, f"{name}: archive {src.get('url', '')}, no sha256")
+                )
+        elif kind == "npm":
+            package = src.get("package") if isinstance(src.get("package"), str) else ""
+            version = src.get("version")
+            appended = (
+                package.rsplit("@", 1)[1]
+                if package.count("@") > (1 if package.startswith("@") else 0)
+                else ""
+            )
+            pinned = (
+                _EXACT_NPM.match(version)
+                if isinstance(version, str)
+                else _EXACT_NPM.match(appended)
+            )
+            if not package.startswith("https://") and not pinned:
+                shown = version if isinstance(version, str) else "latest"
+                out.append(Finding("CPL405", rel, line, f"{name}: npm {package} {shown}"))
+    return out
+
+
 @dataclass
 class ScanResult:
     root: Path
@@ -842,7 +921,7 @@ def scan(root: Path) -> ScanResult:
     if not root.is_dir():
         return ScanResult(root, [], [f"not a directory: {root}"], 0, [])
     targets = marketplace_plugin_dirs(root) if is_marketplace(root) else [""]
-    findings: list[Finding] = []
+    findings: list[Finding] = marketplace_source_findings(root) if is_marketplace(root) else []
     errors: list[str] = []
     files = 0
     for rel in targets:

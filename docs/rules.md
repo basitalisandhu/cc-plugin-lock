@@ -11,7 +11,7 @@ Which files each group reads:
 - Hook rules (CPL101 to CPL110): every handler of every event in `hooks/hooks.json` and in hook files or inline hooks the manifest declares (all handler types in the [hooks reference](https://code.claude.com/docs/en/hooks): `command`, `http`, `mcp_tool`, `prompt` and `agent`), every `command` and `args` string in `hooks/hooks.json` and in hook files or inline hooks the manifest declares, and every line of the scripts those hooks reference, of files under `hooks/`, `bin/` and `monitors/`, of files MCP or LSP servers start, and of other source files.
 - MCP rules (CPL2xx): `.mcp.json`, files named by the manifest's `mcpServers`, and inline `mcpServers` in `plugin.json`.
 - Text rules (CPL3xx): Markdown in `skills/`, `commands/`, `agents/` and output styles, a root `SKILL.md`, and the `prompt` text of `prompt` and `agent` hook handlers.
-- Manifest rules (CPL4xx): component paths in `plugin.json`, symbolic links, and `bin/`.
+- Manifest rules (CPL4xx): component paths in `plugin.json`, symbolic links, `bin/`, and, for a marketplace folder, the plugin sources in `.claude-plugin/marketplace.json` (CPL404, CPL405).
 
 This overlaps on purpose with [agent-config-audit](https://github.com/basitalisandhu/agent-config-audit), which audits a project's whole agent configuration (settings permissions, secrets in `.mcp.json`, `CLAUDE.md`, `AGENTS.md`, Cursor rules). `scan` is the narrower pre-install check for one plugin; run agent-config-audit for the project around it.
 
@@ -106,3 +106,11 @@ Symbolic link points outside the plugin (high). The lock hashes the link target 
 ## CPL403
 
 Plugin adds executables to the Bash PATH (low). Files in `bin/` run as bare commands while the plugin is enabled.
+
+## CPL404
+
+Marketplace entry runs a command on your machine to produce the plugin (high). A `marketplace.json` plugin entry whose `source` is `{"source": "command", ...}`. Claude Code runs that shell command when you install or update the plugin and again once per session, and loads whatever directory it prints ([plugin sources](https://code.claude.com/docs/en/plugins/marketplace-reference#command-plugin-source)). The command itself is not plugin content, so the lock cannot cover it. Administrators can turn command sources off with `disableCommandPluginSources`.
+
+## CPL405
+
+Marketplace entry fetches the plugin without a pinned commit or digest (low). A `github`, `url` or `git-subdir` source with no full 40-character `sha`, an `archive` source with no `sha256`, or an `npm` source with no exact version. Each install or update can then fetch different content. `verify` still catches the change after install; pinning makes the marketplace itself say which content you get.

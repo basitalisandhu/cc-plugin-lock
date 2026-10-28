@@ -305,6 +305,11 @@ def cmd_lock(args: argparse.Namespace) -> int:
     snap = build(root, dirs, excludes)
     for w in snap.warnings:
         _err(f"warning: {w}")
+    if not snap.doc["plugins"] and not snap.errors:
+        _err(
+            f"warning: no installed plugins found under {display_path(Path(root))}; check --root "
+            "(Claude Code keeps them in ~/.claude/plugins unless CLAUDE_CODE_PLUGIN_CACHE_DIR is set)"
+        )
     if snap.errors:
         for e in snap.errors:
             _err(f"error: {e}")
